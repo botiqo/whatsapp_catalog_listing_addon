@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>Select an Image</title>
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #4285f4;
+            margin-top: 0;
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .error { background-color: #ffebee; color: #d32f2f; }
+        .success { background-color: #e8f5e9; color: #388e3c; }
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover { background-color: #3367d6; }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <h1>Select an Image</h1>
+        <p>Click the button below to select an image from your WhatsApp Catalog Listing folder:</p>
+        <button onclick="getOAuthToken()">Select Image</button>
+        <div id="message"></div>
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        var DIALOG_DIMENSIONS = {width: 600, height: 425};
+        var pickerApiLoaded = false;
+        var developerKey = '';
+
+        function onApiLoad() {
+            gapi.load('picker', {'callback': function() {
+                pickerApiLoaded = true;
+                console.log('Picker API loaded');
+            }});
+        }
+
+        function getOAuthToken() {
+            showMessage('Requesting access...', 'info');
+            google.script.run
+                .withSuccessHandler(createPicker)
+                .withFailureHandler(showError)
+                .getOAuthToken();
+        }
+
+        function createPicker(token) {
+            if (pickerApiLoaded && token) {
+                showMessage('Creating picker...', 'info');
+                google.script.run.withSuccessHandler(function(folderId) {
+                    var view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
+                        .setParent(folderId);
+                    var picker = new google.picker.PickerBuilder()
+                        .addView(view)
+                        .setOAuthToken(token)
+                        .setDeveloperKey(developerKey)
+                        .setCallback(pickerCallback)
+                        .setOrigin(google.script.host.origin)
+                        .setSize(DIALOG_DIMENSIONS.width - 2, DIALOG_DIMENSIONS.height - 2)
+                        .build();
+                    picker.setVisible(true);
+                    console.log('Picker created and set visible');
+                }).withFailureHandler(showError)
+                .getWhatsAppFolderId();
+            } else {
+                showError('Picker API not loaded or token not received');
+            }
+        }
+
+        function pickerCallback(data) {
+            if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
+                var doc = data[google.picker.Response.DOCUMENTS][0];
+                var id = doc[google.picker.Document.ID];
+                var url = 'https://drive.google.com/uc?export=view&id=' + id;
+                showMessage('Image selected. Updating spreadsheet...', 'success');
+                google.script.run
+                    .withSuccessHandler(function() {
+                        showMessage('Image URL updated successfully!', 'success');
+                        setTimeout(function() {
+                            google.script.host.close();
+                        }, 2000);
+                    })
+                    .withFailureHandler(showError)
+                    .updateImageUrl(url);
+            } else if (data[google.picker.Response.ACTION] == google.picker.Action.CANCEL) {
+                showMessage('Image selection cancelled.', 'info');
+            }
+        }
+
+        function showError(error) {
+            console.error('Picker error:', error);
+            showMessage('Error: ' + error, 'error');
+        }
+
+        function showMessage(message, type) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = type;
+        }
+
+        window.onload = function() {
+            google.script.run
+                .withSuccessHandler(function(key) {
+                    developerKey = key;
+                    onApiLoad();
+                })
+                .withFailureHandler(showError)
+                .getDeveloperKey();
+        };
+    </script>
+</body>
+</html>

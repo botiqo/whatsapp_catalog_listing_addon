@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>WhatsApp Catalog Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #4285f4;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        form {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            font-size: 16px;
+        }
+        input[type="button"] {
+            background-color: #4285f4;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        input[type="button"]:hover {
+            background-color: #3367d6;
+        }
+        .error {
+            color: #d32f2f;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WhatsApp Catalog Configuration</h1>
+    <form id="configForm">
+        <label for="product_type">WhatsApp Catalog Listing Type:</label>
+        <select id="product_type" required></select>
+
+        <label for="currency">Default Currency:</label>
+        <select id="currency" required></select>
+
+        <label for="category">Default Category:</label>
+        <select id="category" required></select>
+
+        <label for="availability">Default Availability:</label>
+        <select id="availability" required></select>
+
+        <label for="condition">Default Condition:</label>
+        <select id="condition" required></select>
+
+        <input type="button" value="Save Configuration" onclick="submitForm()">
+    </form>
+
+    <script>
+        function loadDropdowns() {
+            google.script.run.withSuccessHandler(function(data) {
+                console.log(data);
+                populateDropdown('product_type', data.productTypeList, data.preselectedProductType);
+                populateDropdown('category', data.categoryList, data.preselectedCategory);
+                populateDropdown('currency', data.currencyList, data.preselectedCurrency);
+                populateDropdown('availability', data.availabilityList, data.preselectedAvailability);
+                populateDropdown('condition', data.conditionList, data.preselectedCondition);
+            }).withFailureHandler(function(error) {
+                console.error('Error loading dropdown data:', error);
+                showError('Failed to load configuration data. Please try again.');
+            }).getConfigurationDropdownLists();
+        }
+
+        function populateDropdown(id, options, preselectedValue) {
+            var select = document.getElementById(id);
+            select.innerHTML = ''; // Clear existing options
+            options.forEach(function(option) {
+                var opt = document.createElement('option');
+                opt.value = option;
+                opt.innerHTML = option;
+                if (preselectedValue && opt.value === preselectedValue) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+        
+        function submitForm() {
+            var form = document.getElementById('configForm');
+            if (form.checkValidity()) {
+                var formObject = {
+                    product_type: document.getElementById('product_type').value,
+                    category: document.getElementById('category').value,
+                    currency: document.getElementById('currency').value,
+                    availability: document.getElementById('availability').value,
+                    condition: document.getElementById('condition').value
+                };
+
+                google.script.run.withSuccessHandler(function() {
+                    google.script.host.close();
+                }).withFailureHandler(function(error) {
+                    console.error('Error submitting form:', error);
+                    showError('Failed to save configuration. Please try again.');
+                }).processForm(formObject);
+            } else {
+                showError('Please fill out all required fields.');
+            }
+        }
+
+        function showError(message) {
+            var errorDiv = document.getElementById('errorMessage');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'errorMessage';
+                errorDiv.className = 'error';
+                document.body.insertBefore(errorDiv, document.body.firstChild);
+            }
+            errorDiv.textContent = message;
+        }
+
+        window.onload = loadDropdowns;
+    </script>
+</body>
+</html>
