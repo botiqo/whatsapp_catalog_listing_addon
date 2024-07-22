@@ -42,11 +42,6 @@ const PRODUCT_TYPE_LIST = ["standard", "service", "default"];
 const AVAILABILITY_LIST = ["in stock", "out of stock"];
 const CONDITION_LIST = ["new", "used"];
 
-var CONFIG = {
-  DEVELOPER_KEY: PropertiesService.getScriptProperties().getProperty('DEVELOPER_KEY'),
-  CLIENT_ID: PropertiesService.getScriptProperties().getProperty('CLIENT_ID')
-};
-
 /**
  * Retrieves configuration dropdown lists and preselected values.
  * @return {Object} An object containing dropdown lists and preselected values.
@@ -98,8 +93,6 @@ function onHomepage(e) {
     .setText("Validate All Data")
     .setOnClickAction(CardService.newAction().setFunctionName("validateAllData")));
 
-  // Add other buttons similarly
-  
   card.addSection(mainSection);
 
   return card.build();
@@ -110,7 +103,12 @@ function onHomepage(e) {
  * @param {Object} e The event parameter for a simple onInstall trigger.
  */
 function onInstall(e) {
-  onOpen(e);
+  try {
+    onOpen(e);
+    logEvent('Add-on installed successfully', 'INFO');
+  } catch (error) {
+    logEvent('Error during add-on installation: ' + error.message, 'ERROR');
+  }
 }
 
 /**
@@ -118,27 +116,13 @@ function onInstall(e) {
  * @param {Object} e The event parameter for a simple onOpen trigger.
  */
 function onOpen(e) {
-  createMenu();
-  setupSpreadsheet();
-}
-
-/**
- * Gets the developer key from script properties.
- * @return {string} The developer key.
- */
-function getDeveloperKey() {
-  return PropertiesService.getScriptProperties().getProperty('DEVELOPER_KEY');
-}
-
-/**
- * Sets the developer key in script properties.
- */
-function setDeveloperKey() {
-  var scriptProperties = PropertiesService.getScriptProperties();
-  scriptProperties.setProperties({
-    'CLIENT_ID': '999543760535-9tlmf6n70b7p7jjr7o11itvgrqkb3blt.apps.googleusercontent.com',
-    'DEVELOPER_KEY': 'AIzaSyBoPL7WmQF-YYoJtfeKQOTIuPwBR0oR8zQ',
-  });
+  try {
+    createMenu();
+    setupSpreadsheet();
+    logEvent('Add-on opened successfully', 'INFO');
+  } catch (error) {
+    logEvent('Error during add-on opening: ' + error.message, 'ERROR');
+  }
 }
 
 /**
@@ -392,58 +376,220 @@ function onEdit(e) {
 }
 
 /**
- * Exports relevant columns based on the selected product type.
- * @return {GoogleAppsScript.Spreadsheet.Sheet} The newly created export sheet.
+ * Validates product data.
+ * @param {Object} product The product object to validate.
+ * @return {Array} An array of error messages, empty if no errors.
  */
-function exportRelevantColumns() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sourceSheet = ss.getActiveSheet();
-  const defaultProductType = PropertiesService.getScriptProperties().getProperty('DEFAULT_PRODUCT_TYPE') || 'standard';
+function validateProductData(product) {
+  const errors = [];
   
-  const relevantColumns = PRODUCT_TYPE_COLUMNS[defaultProductType] || PRODUCT_TYPE_COLUMNS['default'];
-  
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const newSheetName = `Export_${defaultProductType}_${timestamp}`;
-  const exportSheet = ss.insertSheet(newSheetName);
-  
-  const columnIndices = relevantColumns.map(header => getColumnIndexByHeader(header, sourceSheet)).filter(index => index !== null);
-  
-  const sourceData = sourceSheet.getRange(1, 1, sourceSheet.getLastRow(), sourceSheet.getLastColumn()).getValues();
-  const exportData = sourceData.map(row => columnIndices.map(index => row[index - 1]));
-  
-  if (exportData.length > 0) {
-    exportSheet.getRange(1, 1, exportData.length, exportData[0].length).setValues(exportData);
+  if (!product.id || product.id.length > 100) {
+    errors.push("Invalid product ID");
   }
-  
-  exportData[0].forEach((_, index) => {
-    exportSheet.autoResizeColumn(index + 1);
-  });
-  
-  const headerRange = exportSheet.getRange(1, 1, 1, exportData[0].length);
-  headerRange.setFontWeight('bold');
-  headerRange.setBackground('#f3f3f3');
-  
-  Logger.log(`Exported relevant columns for product type '${defaultProductType}' to sheet '${newSheetName}'`);
-  
-  return exportSheet;
+  if (!product.name || product.name.length > 150) {
+    errors.push("Invalid product name");
+  }
+  if (product.description && product.description.length > 7000) {
+    errors.push("Description exceeds 7000 characters");
+  }
+  if (!validatePrice(product.price, product.product_type)) {
+    errors.push("Invalid price");
+  }
+  if (!CURRENCY_LIST.includes(product.currency)) {
+    errors.push("Invalid currency");
+  }
+  if (!product.image_url || !/^https?:\/\/.+/.test(product.image_url)) {
+    errors.push("Invalid image URL");
+  }
+  if (!AVAILABILITY_LIST.includes(product.availability)) {
+    errors.push("Invalid availability");
+  }
+  if ((product.product_type === "standard" || product.product_type === "variable") && !CONDITION_LIST.includes(product.condition)) {
+    errors.push("Invalid condition");
+  }
+  if (product.brand && product.brand.length > 64) {
+    errors.push("Brand name exceeds 64 characters");
+  }
+  if (product.category_id && product.category_id.length > 250) {
+    errors.push("Category exceeds 250 characters");
+  }
+  if (product.url && product.url.length > 2000) {
+    errors.push("URL exceeds 2000 characters");
+  }
+
+  logEvent(`Product validation completed. Errors found: ${errors.length}`, 'INFO');
+  return errors;
 }
 
 /**
- * Logs an event with a timestamp and severity level.
- * @param {string} message The message to log.
- * @param {string} severity The severity level of the log (default: 'INFO').
+ * Validates the price based on the product type.
+ * @param {string} price The price to validate.
+ * @param {string} productType The type of the product.
+ * @return {boolean} True if the price is valid, false otherwise.
  */
-function logEvent(message, severity = 'INFO') {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Log') || SpreadsheetApp.getActiveSpreadsheet().insertSheet('Log');
-  sheet.appendRow([new Date(), severity, message]);
-  console.log(`${severity}: ${message}`);
+function validatePrice(price, productType) {
+  if (productType === "variable") {
+    const priceRange = price.split("-");
+    if (priceRange.length === 2) {
+      return !isNaN(priceRange[0]) && !isNaN(priceRange[1]) && Number(priceRange[0]) > 0 && Number(priceRange[1]) > 0;
+    }
+  }
+  return !isNaN(price) && Number(price) > 0;
 }
 
 /**
- * Handles errors by logging them and displaying an alert to the user.
- * @param {Error} error The error object.
+ * Validates a standard product.
+ * @param {Object} product The product object to validate.
+ * @return {Array} An array of error messages, empty if no errors.
  */
-function handleError(error) {
-  logEvent('Error: ' + error.toString(), 'ERROR');
-  SpreadsheetApp.getUi().alert('An error occurred. Please check the Log sheet for details.');
+function validateStandardProduct(product) {
+  const errors = validateProductData(product);
+  if (product.product_type !== "standard") {
+    errors.push("Invalid product type for standard product");
+  }
+  logEvent(`Standard product validation completed. Errors found: ${errors.length}`, 'INFO');
+  return errors;
+}
+
+/**
+ * Validates a service listing.
+ * @param {Object} product The product object to validate.
+ * @return {Array} An array of error messages, empty if no errors.
+ */
+function validateServiceListing(product) {
+  const errors = validateProductData(product);
+  if (product.product_type !== "service") {
+    errors.push("Invalid product type for service listing");
+  }
+  if (product.condition) {
+    errors.push("Condition should not be specified for services");
+  }
+  logEvent(`Service listing validation completed. Errors found: ${errors.length}`, 'INFO');
+  return errors;
+}
+
+/**
+ * Validates a variable product.
+ * @param {Object} product The product object to validate.
+ * @return {Array} An array of error messages, empty if no errors.
+ */
+function validateVariableProduct(product) {
+  const errors = validateProductData(product);
+  if (product.product_type !== "variable") {
+    errors.push("Invalid product type for variable product");
+  }
+  if (!product.variant_group_id || product.variant_group_id.length > 100) {
+    errors.push("Invalid variant group ID");
+  }
+  logEvent(`Variable product validation completed. Errors found: ${errors.length}`, 'INFO');
+  return errors;
+}
+
+/**
+ * Extends data validation to newly added rows.
+ */
+function extendDataValidation() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const lastRow = sheet.getLastRow();
+    
+    applyDataValidationToAllColumns();
+    
+    logEvent(`Data validation extended to row ${lastRow}`, 'INFO');
+  } catch (error) {
+    logEvent(`Error extending data validation: ${error.message}`, 'ERROR');
+    throw error;
+  }
+}
+
+/**
+ * Validates all products in the active sheet.
+ * @return {Array} An array of error messages, empty if no errors.
+ */
+function validateAllProducts() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const dataRange = sheet.getDataRange();
+  const values = dataRange.getValues();
+  const headers = values[0];
+  const errors = [];
+
+  for (let i = 1; i < values.length; i++) {
+    const product = {};
+    headers.forEach((header, index) => {
+      product[header] = values[i][index];
+    });
+
+    let productErrors;
+    switch (product.product_type) {
+      case 'standard':
+        productErrors = validateStandardProduct(product);
+        break;
+      case 'service':
+        productErrors = validateServiceListing(product);
+        break;
+      case 'variable':
+        productErrors = validateVariableProduct(product);
+        break;
+      default:
+        productErrors = [`Invalid product type: ${product.product_type}`];
+    }
+
+    if (productErrors.length > 0) {
+      errors.push(`Row ${i + 1}: ${productErrors.join(', ')}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    logEvent(`Validation completed. ${errors.length} errors found.`, 'WARNING');
+    SpreadsheetApp.getUi().alert(`Validation Errors:\n\n${errors.join('\n')}`);
+  } else {
+    logEvent('Validation completed. No errors found.', 'INFO');
+    SpreadsheetApp.getUi().alert('All products are valid!');
+  }
+
+  return errors;
+}
+
+/**
+ * Validates a single row in the active sheet.
+ * @param {number} rowNum The row number to validate.
+ * @return {Array} An array of error messages, empty if no errors.
+ */
+function validateRow(rowNum) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
+    
+    const product = {};
+    headers.forEach((header, index) => {
+      product[header] = rowData[index];
+    });
+
+    let errors;
+    switch (product.product_type) {
+      case 'standard':
+        errors = validateStandardProduct(product);
+        break;
+      case 'service':
+        errors = validateServiceListing(product);
+        break;
+      case 'variable':
+        errors = validateVariableProduct(product);
+        break;
+      default:
+        errors = [`Invalid product type: ${product.product_type}`];
+    }
+
+    if (errors.length > 0) {
+      logEvent(`Validation errors in row ${rowNum}: ${errors.join(', ')}`, 'WARNING');
+    } else {
+      logEvent(`Row ${rowNum} validated successfully`, 'INFO');
+    }
+
+    return errors;
+  } catch (error) {
+    logEvent(`Error validating row ${rowNum}: ${error.message}`, 'ERROR');
+    throw error;
+  }
 }
