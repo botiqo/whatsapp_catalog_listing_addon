@@ -3,28 +3,18 @@
  */
 function createMenu() {
   try {
-    const menu = SpreadsheetApp.getUi().createAddonMenu();
-    menu.addItem("Setup Spreadsheet", "setupSpreadsheet");
-    menu.addItem("Configuration", "showConfigurationPrompt");
-    menu.addItem("Validate All Data", "validateAllData");
-    menu.addItem("Select Image from Drive", "showPicker");
-    menu.addItem("Import images from Drive", "getListingImageUrlsAndSetInSheet");
-    menu.addItem("Set WhatsApp Images Folder", "showFolderNamePrompt");
-    menu.addItem("Export Relevant Columns", "exportRelevantColumns");
-    menu.addItem("Instructions", "showInstructions");
-    menu.addToUi();
-
-    // const ui = SpreadsheetApp.getUi();
-    // ui.createAddonMenu()
-    //   .addItem('Setup Spreadsheet', 'setupSpreadsheet')
-    //   .addItem('Configuration', 'showConfigurationPrompt')
-    //   .addItem('Validate All Data', 'validateAllData')
-    //   .addItem('Select Image from Drive', 'showPicker')
-    //   .addItem('Import images from Drive', 'getListingImageUrlsAndSetInSheet')
-    //   .addItem('Set WhatsApp Images Folder', 'showFolderNamePrompt')
-    //   .addItem('Export Relevant Columns', 'exportRelevantColumns')
-    //   .addItem('Instructions', 'showInstructions')
-    //   .addToUi();
+    const ui = SpreadsheetApp.getUi();
+    const menu = ui.createAddonMenu();
+    
+    menu.addItem("Setup Spreadsheet", "showSetupSpreadsheetCard")
+        .addItem("Configuration", "showConfigurationCard")
+        .addItem("Validate All Data", "showValidateAllDataCard")
+        .addItem("Select Image from Drive", "showImagePickerCard")
+        .addItem("Import images from Drive", "showImportImagesCard")
+        .addItem("Set WhatsApp Images Folder", "showSetFolderNameCard")
+        .addItem("Export Relevant Columns", "showExportColumnsCard")
+        .addItem("Instructions", "showInstructionsCard")
+        .addToUi();
     
     logEvent('Menu created', 'INFO');
   } catch (error) {
@@ -34,48 +24,68 @@ function createMenu() {
 }
 
 /**
- * Shows a prompt to set the WhatsApp images folder name.
+ * Shows a card to set the WhatsApp images folder name.
+ * @return {CardService.Card} The folder name input card.
  */
-function showFolderNamePrompt() {
-  const ui = SpreadsheetApp.getUi();
-  const response = ui.prompt('Set WhatsApp Images Folder', 'Enter the name for the WhatsApp images folder:', ui.ButtonSet.OK_CANCEL);
+function showSetFolderNameCard() {
+  const card = CardService.newCardBuilder();
+  card.setHeader(CardService.newCardHeader().setTitle("Set WhatsApp Images Folder"));
   
-  if (response.getSelectedButton() == ui.Button.OK) {
-    const folderName = response.getResponseText().trim();
-    try {
-      setWhatsAppFolderName(folderName);
-      ui.alert('Folder name set to: ' + folderName);
-      logEvent(`WhatsApp Images folder name set to: ${folderName}`, 'INFO');
-    } catch (error) {
-      ui.alert('Error: ' + error.message);
-      logEvent(`Error setting WhatsApp Images folder name: ${error.message}`, 'ERROR');
-    }
-  } else {
-    logEvent('Folder name setting cancelled by user', 'INFO');
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextInput()
+      .setFieldName("folderName")
+      .setTitle("Enter the name for the WhatsApp images folder:")
+    )
+    .addWidget(CardService.newTextButton()
+      .setText("Set Folder Name")
+      .setOnClickAction(CardService.newAction().setFunctionName("setFolderNameFromCard"))
+    );
+  
+  card.addSection(section);
+  return card.build();
+}
+
+/**
+ * Sets the folder name from the card input.
+ * @param {Object} e The event object from card interaction.
+ * @return {CardService.ActionResponse} The action response after setting the folder name.
+ */
+function setFolderNameFromCard(e) {
+  const folderName = e.commonEventObject.formInputs.folderName;
+  
+  try {
+    setWhatsAppFolderName(folderName);
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Folder name set to: " + folderName))
+      .build();
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Error: " + error.message))
+      .build();
   }
 }
 
 /**
- * Shows the configuration prompt using CardService.
- * @return {Card} The card to display.
+ * Shows the configuration card using CardService.
+ * @return {CardService.Card} The configuration card.
  */
-function showConfigurationPrompt() {
-  var card = CardService.newCardBuilder();
+function showConfigurationCard() {
+  const card = CardService.newCardBuilder();
   card.setHeader(CardService.newCardHeader().setTitle("WhatsApp Catalog Configuration"));
 
-  var section = CardService.newCardSection();
+  const section = CardService.newCardSection();
 
   // Get the configuration data
-  var config = getConfigurationDropdownLists();
+  const config = getConfigurationDropdownLists();
 
   // WhatsApp Catalog Listing Type
   section.addWidget(CardService.newSelectionInput()
     .setType(CardService.SelectionInputType.DROPDOWN)
     .setTitle("WhatsApp Catalog Listing Type")
     .setFieldName("product_type")
-    .addItems(config.productTypeList.map(function(type) {
-      return CardService.newOption(type, type, type === config.preselectedProductType);
-    }))
+    .addItems(config.productTypeList.map(type => CardService.newOption(type, type, type === config.preselectedProductType)))
   );
 
   // Default Currency
@@ -83,9 +93,7 @@ function showConfigurationPrompt() {
     .setType(CardService.SelectionInputType.DROPDOWN)
     .setTitle("Default Currency")
     .setFieldName("currency")
-    .addItems(config.currencyList.map(function(currency) {
-      return CardService.newOption(currency, currency, currency === config.preselectedCurrency);
-    }))
+    .addItems(config.currencyList.map(currency => CardService.newOption(currency, currency, currency === config.preselectedCurrency)))
   );
 
   // Default Category
@@ -93,9 +101,7 @@ function showConfigurationPrompt() {
     .setType(CardService.SelectionInputType.DROPDOWN)
     .setTitle("Default Category")
     .setFieldName("category")
-    .addItems(config.categoryList.map(function(category) {
-      return CardService.newOption(category, category, category === config.preselectedCategory);
-    }))
+    .addItems(config.categoryList.map(category => CardService.newOption(category, category, category === config.preselectedCategory)))
   );
 
   // Default Availability
@@ -103,9 +109,7 @@ function showConfigurationPrompt() {
     .setType(CardService.SelectionInputType.DROPDOWN)
     .setTitle("Default Availability")
     .setFieldName("availability")
-    .addItems(config.availabilityList.map(function(availability) {
-      return CardService.newOption(availability, availability, availability === config.preselectedAvailability);
-    }))
+    .addItems(config.availabilityList.map(availability => CardService.newOption(availability, availability, availability === config.preselectedAvailability)))
   );
 
   // Default Condition
@@ -113,9 +117,7 @@ function showConfigurationPrompt() {
     .setType(CardService.SelectionInputType.DROPDOWN)
     .setTitle("Default Condition")
     .setFieldName("condition")
-    .addItems(config.conditionList.map(function(condition) {
-      return CardService.newOption(condition, condition, condition === config.preselectedCondition);
-    }))
+    .addItems(config.conditionList.map(condition => CardService.newOption(condition, condition, condition === config.preselectedCondition)))
   );
 
   // Save button
@@ -130,14 +132,14 @@ function showConfigurationPrompt() {
 }
 
 /**
- * Saves the configuration.
- * @param {Object} e The event object from the card submission.
- * @return {ActionResponse} The action response to acknowledge the save.
+ * Saves the configuration from the card input.
+ * @param {Object} e The event object from card interaction.
+ * @return {CardService.ActionResponse} The action response after saving the configuration.
  */
 function saveConfiguration(e) {
-  var formInputs = e.commonEventObject.formInputs;
+  const formInputs = e.commonEventObject.formInputs;
   
-  var formObject = {
+  const formObject = {
     product_type: formInputs.product_type.stringInputs.value[0],
     category: formInputs.category.stringInputs.value[0],
     currency: formInputs.currency.stringInputs.value[0],
@@ -145,44 +147,207 @@ function saveConfiguration(e) {
     condition: formInputs.condition.stringInputs.value[0]
   };
 
-  processForm(formObject);
-  
+  return processForm(formObject);
+}
+
+/**
+ * Shows the instructions card.
+ * @return {CardService.Card} The instructions card.
+ */
+function showInstructionsCard() {
+  const card = CardService.newCardBuilder();
+  card.setHeader(CardService.newCardHeader().setTitle("Instructions"));
+
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph().setText("1. Click on 'Setup Spreadsheet' to initialize your sheet with the correct headers and formatting."))
+    .addWidget(CardService.newTextParagraph().setText("2. Use 'Configuration' to set default values for product type, currency, category, availability, and condition."))
+    .addWidget(CardService.newTextParagraph().setText("3. Use 'Set WhatsApp Images Folder' to specify the Google Drive folder for your catalog images."))
+    .addWidget(CardService.newTextParagraph().setText("4. 'Import images from Drive' will populate your sheet with image URLs from the specified folder."))
+    .addWidget(CardService.newTextParagraph().setText("5. Use 'Select Image from Drive' to choose individual images for each product."))
+    .addWidget(CardService.newTextParagraph().setText("6. 'Validate All Data' checks your catalog for any errors or missing information."))
+    .addWidget(CardService.newTextParagraph().setText("7. When your catalog is ready, use 'Export Relevant Columns' to create a new sheet with only the required data for WhatsApp."));
+
+  card.addSection(section);
+  return card.build();
+}
+
+/**
+ * Shows the image picker card.
+ * @return {CardService.ActionResponse} The action response to show the image picker.
+ */
+function showImagePickerCard() {
+  const card = showImagePicker();
+  const navigation = CardService.newNavigation().pushCard(card);
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText("Configuration saved successfully"))
+    .setNavigation(navigation)
     .build();
 }
 
 /**
- * Shows the instructions dialog.
+ * Shows a card to validate all data in the spreadsheet.
+ * @return {CardService.Card} The validate data card.
  */
-function showInstructions() {
-  const html = HtmlService.createHtmlOutputFromFile('Instructions')
-    .setWidth(800)
-    .setHeight(600);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Instructions');
-  logEvent('Instructions displayed', 'INFO');
+function showValidateAllDataCard() {
+  const card = CardService.newCardBuilder();
+  card.setHeader(CardService.newCardHeader().setTitle("Validate All Data"));
+  
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph().setText("This will check all product data in your spreadsheet for errors or missing information."))
+    .addWidget(CardService.newTextButton()
+      .setText("Start Validation")
+      .setOnClickAction(CardService.newAction().setFunctionName("validateAllDataFromCard"))
+    );
+  
+  card.addSection(section);
+  return card.build();
 }
 
 /**
- * Shows the configuration form.
+ * Performs data validation from the card confirmation.
+ * @return {CardService.ActionResponse} The action response after validating the data.
  */
-function showConfigurationForm() {
-  const ui = SpreadsheetApp.getUi();
-  const html = HtmlService.createHtmlOutputFromFile('Dropdown')
-      .setWidth(800)
-      .setHeight(600);
-  ui.showModalDialog(html, 'Configuration');
-  logEvent('Configuration form displayed', 'INFO');
+function validateAllDataFromCard() {
+  try {
+    const errors = validateAllProducts();
+    if (errors.length === 0) {
+      return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification()
+          .setText("All data is valid!"))
+        .build();
+    } else {
+      // Create a card to display errors
+      const errorCard = CardService.newCardBuilder();
+      errorCard.setHeader(CardService.newCardHeader().setTitle("Validation Errors"));
+      
+      const errorSection = CardService.newCardSection();
+      errors.forEach(error => {
+        errorSection.addWidget(CardService.newTextParagraph().setText(error));
+      });
+      
+      errorCard.addSection(errorSection);
+      
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(errorCard.build()))
+        .build();
+    }
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Error validating data: " + error.message))
+      .build();
+  }
 }
 
 /**
- * Shows the image picker dialog.
+ * Shows a card to import images from Google Drive.
+ * @return {CardService.Card} The import images card.
  */
-function showPicker() {
-  const htmlOutput = HtmlService.createHtmlOutputFromFile('Picker')
-      .setWidth(600)
-      .setHeight(425)
-      .setTitle('Select an Image');
-  SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Select an Image');
-  logEvent('Image picker displayed', 'INFO');
+function showImportImagesCard() {
+  const card = CardService.newCardBuilder();
+  card.setHeader(CardService.newCardHeader().setTitle("Import Images from Drive"));
+  
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph().setText("This will import image URLs from your WhatsApp Catalog Listing folder in Google Drive."))
+    .addWidget(CardService.newTextButton()
+      .setText("Start Import")
+      .setOnClickAction(CardService.newAction().setFunctionName("importImagesFromCard"))
+    );
+  
+  card.addSection(section);
+  return card.build();
+}
+
+/**
+ * Performs image import from the card confirmation.
+ * @return {CardService.ActionResponse} The action response after importing images.
+ */
+function importImagesFromCard() {
+  try {
+    const imageUrls = getListingImageUrlsAndSetInSheet();
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText(`Successfully imported ${imageUrls.length} image URLs.`))
+      .build();
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Error importing images: " + error.message))
+      .build();
+  }
+}
+
+/**
+ * Shows a card to export relevant columns.
+ * @return {CardService.Card} The export columns card.
+ */
+function showExportColumnsCard() {
+  const card = CardService.newCardBuilder();
+  card.setHeader(CardService.newCardHeader().setTitle("Export Relevant Columns"));
+  
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph().setText("This will create a new sheet with only the columns required for your WhatsApp Catalog."))
+    .addWidget(CardService.newTextButton()
+      .setText("Start Export")
+      .setOnClickAction(CardService.newAction().setFunctionName("exportColumnsFromCard"))
+    );
+  
+  card.addSection(section);
+  return card.build();
+}
+
+/**
+ * Performs column export from the card confirmation.
+ * @return {CardService.ActionResponse} The action response after exporting columns.
+ */
+function exportColumnsFromCard() {
+  try {
+    const exportSheet = exportRelevantColumns();
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText(`Relevant columns exported to sheet: ${exportSheet.getName()}`))
+      .build();
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Error exporting columns: " + error.message))
+      .build();
+  }
+}
+
+/**
+ * Shows a card to confirm setup of the spreadsheet.
+ * @return {CardService.Card} The setup confirmation card.
+ */
+function showSetupSpreadsheetCard() {
+  const card = CardService.newCardBuilder();
+  card.setHeader(CardService.newCardHeader().setTitle("Setup Spreadsheet"));
+  
+  const section = CardService.newCardSection()
+    .addWidget(CardService.newTextParagraph().setText("This will set up your spreadsheet with the correct headers and formatting. Any existing data will be preserved."))
+    .addWidget(CardService.newTextButton()
+      .setText("Confirm Setup")
+      .setOnClickAction(CardService.newAction().setFunctionName("setupSpreadsheetFromCard"))
+    );
+  
+  card.addSection(section);
+  return card.build();
+}
+
+/**
+ * Performs the spreadsheet setup from the card confirmation.
+ * @return {CardService.ActionResponse} The action response after setting up the spreadsheet.
+ */
+function setupSpreadsheetFromCard() {
+  try {
+    setupSpreadsheet();
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Spreadsheet set up successfully."))
+      .build();
+  } catch (error) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Error setting up spreadsheet: " + error.message))
+      .build();
+  }
 }
