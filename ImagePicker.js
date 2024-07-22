@@ -1,25 +1,100 @@
 /**
- * Shows the image picker dialog.
+ * Creates and returns a card for the image picker.
+ * @return {Card} The image picker card.
  */
-function showPicker() {
-  const htmlOutput = HtmlService.createHtmlOutputFromFile('Picker')
-      .setWidth(600)
-      .setHeight(425)
-      .setTitle('Select an Image');
-  SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Select an Image');
-  logEvent('Image picker dialog displayed', 'INFO');
+function createImagePickerCard() {
+  const card = CardService.newCardBuilder();
+  
+  card.setHeader(CardService.newCardHeader().setTitle("Select an Image"));
+  
+  const section = CardService.newCardSection()
+    .setHeader("Choose an image from your WhatsApp Catalog Listing folder:");
+  
+  const action = CardService.newAction().setFunctionName("selectImage");
+  const button = CardService.newTextButton()
+    .setText("Select Image")
+    .setOnClickAction(action);
+  
+  section.addWidget(button);
+  
+  card.addSection(section);
+  
+  return card.build();
 }
 
 /**
- * Gets the OAuth token for the current user.
- * @return {string|null} The OAuth token, or null if an error occurs.
+ * Handles the image selection process.
+ * @return {ActionResponse} The action response after image selection.
  */
-function getOAuthToken() {
-  try {
-    return ScriptApp.getOAuthToken();
-  } catch (e) {
-    logEvent(`Error getting OAuth token: ${e.toString()}`, 'ERROR');
-    return null;
+function selectImage() {
+  const folderId = getWhatsAppFolderId();
+  
+  if (!folderId) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("WhatsApp folder not found. Please set up the folder first."))
+      .build();
+  }
+  
+  const picker = createPicker(folderId);
+  
+  if (!picker) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Unable to create image picker. Please try again."))
+      .build();
+  }
+  
+  return CardService.newActionResponseBuilder()
+    .setOpenDynamicLinkAction(picker)
+    .build();
+}
+
+/**
+ * Creates a Google Picker for image selection.
+ * @param {string} folderId The ID of the WhatsApp folder.
+ * @return {DynamicLinkAction|null} The picker action or null if unable to create.
+ */
+function createPicker(folderId) {
+  const token = ScriptApp.getOAuthToken();
+  const pickerCallback = "pickerCallback";
+  const pickerBuilder = DocumentApp.newPickerBuilder()
+    .addView(DocumentApp.PickerView.FOLDERS)
+    .setOrigin(ScriptApp.getService().getUrl())
+    .setOAuthToken(token)
+    .setCallback(pickerCallback)
+    .setSelectableMimeTypes("image/png,image/jpeg,image/gif")
+    .setTitle("Select an Image");
+  
+  if (folderId) {
+    pickerBuilder.setParent(folderId);
+  }
+  
+  return pickerBuilder.build();
+}
+
+/**
+ * Callback function for the Google Picker.
+ * @param {Object} params The parameters returned by the Picker.
+ * @return {ActionResponse} The action response after image selection.
+ */
+function pickerCallback(params) {
+  if (params.action === "picked") {
+    const doc = params.docs[0];
+    const url = doc.url;
+    const name = doc.name;
+    
+    updateImageUrl(url);
+    
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText(`Image "${name}" selected successfully.`))
+      .build();
+  } else if (params.action === "cancel") {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText("Image selection cancelled."))
+      .build();
   }
 }
 
@@ -46,42 +121,16 @@ function updateImageUrl(url) {
 
     // Generate and set unique ID if not already present
     generateAndSetUniqueId(sheet, cell.getRow());
-
   } else {
-    SpreadsheetApp.getUi().alert("Please select a cell in the image_url column before choosing an image.");
     logEvent("Attempted to update image URL in wrong column", 'WARNING');
+    throw new Error("Please select a cell in the image_url column before choosing an image.");
   }
 }
 
 /**
- * Retrieves the developer key from script properties.
- * @return {string} The developer key.
+ * Shows the image picker card.
+ * @return {CardService.Card} The image picker card.
  */
-function getDeveloperKey() {
-  const key = PropertiesService.getScriptProperties().getProperty('DEVELOPER_KEY');
-  if (!key) {
-    logEvent("Developer key not found in script properties", 'WARNING');
-  }
-  return key;
-}
-
-/**
- * Initializes the image picker.
- * This function should be called from the client-side JavaScript.
- */
-function initializePicker() {
-  const token = getOAuthToken();
-  const key = getDeveloperKey();
-  const folderId = getWhatsAppFolderId();
-
-  if (!token || !key || !folderId) {
-    logEvent("Failed to initialize picker: missing token, key, or folder ID", 'ERROR');
-    return null;
-  }
-
-  return {
-    token: token,
-    key: key,
-    folderId: folderId
-  };
+function showImagePicker() {
+  return createImagePickerCard();
 }

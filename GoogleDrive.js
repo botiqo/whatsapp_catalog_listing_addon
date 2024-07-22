@@ -1,4 +1,12 @@
 /**
+ * Gets the OAuth token for the current user.
+ * @return {string} The OAuth token.
+ */
+function getOAuthToken() {
+  return ScriptApp.getOAuthToken();
+}
+
+/**
  * Gets or creates the WhatsApp folder in Google Drive.
  * @return {GoogleAppsScript.Drive.Folder} The WhatsApp folder.
  */
