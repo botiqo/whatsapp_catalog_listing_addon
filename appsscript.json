@@ -50,6 +50,10 @@
       }
     }
   },
+  "cloudPlatform": {
+    "projectNumber": "999543760535",
+    "oauthClientId": "YOUR_OAUTH_CLIENT_ID999543760535-9tlmf6n70b7p7jjr7o11itvgrqkb3blt.apps.googleusercontent.com"
+  },
   "urlFetchWhitelist": [
     "https://drive.google.com/",
     "https://www.googleapis.com/"
