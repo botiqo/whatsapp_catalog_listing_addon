@@ -22,7 +22,6 @@
     "https://www.googleapis.com/auth/script.container.ui",
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/script.card-ui",
-    "https://www.googleapis.com/auth/script.external_request",
     "https://www.googleapis.com/auth/drive"
   ],
   "addOns": {
@@ -34,9 +33,18 @@
         "runFunction": "onHomepage"
       },
       "description": "Manage your WhatsApp Catalog listings efficiently with this add-on.",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "universalActions": [
+        {
+          "label": "Open Settings",
+          "runFunction": "openSettings"
+        }
+      ]
     },
     "sheets": {
+      "homepageTrigger": {
+        "enabled": true
+      },
       "onFileScopeGrantedTrigger": {
         "runFunction": "onOpen"
       }
