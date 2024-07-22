@@ -12,11 +12,11 @@ function getLastRow() {
  * @param {string} columnName The name of the column to set validation for.
  * @param {string[]} columnValueOptions The list of valid options for the column.
  */
-function setFieldValidation(columnName, columnValueOptions) {
-  const sheet = SpreadsheetApp.getActiveSheet();
+function setFieldValidation(columnName, columnValueOptions, sheet) {
+  sheet = sheet || getOrCreateMainSheet();
   const columnIndex = getColumnIndexByHeader(columnName);
   logEvent(`Setting validation for column: ${columnName}, index: ${columnIndex}`, 'INFO');
-  
+
   if (columnIndex > 0) {
     const lastRow = sheet.getLastRow();
     const columnRange = sheet.getRange(2, columnIndex, Math.max(lastRow - 1, 1), 1);
@@ -35,7 +35,7 @@ function clearAllDataValidations() {
   const sheet = SpreadsheetApp.getActiveSheet();
   const range = sheet.getDataRange();
   range.setDataValidation(null);
-  
+
   logEvent(`Cleared all data validations from the entire sheet`, 'INFO');
 }
 
@@ -73,7 +73,7 @@ function generateAndSetUniqueId(sheet, row) {
   }
 
   const idCell = sheet.getRange(row, idColumnIndex);
-  
+
   if (idCell.getValue()) {
     return idCell.getValue();
   }
@@ -190,7 +190,7 @@ function setupThumbnailColumn(thumbnailColumnName, imageUrlColumnName, startRow 
  */
 function clearSheetCompletely() {
   const sheet = SpreadsheetApp.getActiveSheet();
-  
+
   sheet.clear();
   sheet.clearConditionalFormatRules();
   sheet.getDataRange().clearDataValidations();
@@ -207,7 +207,7 @@ function setValuesToColumn(columnName, value) {
   const sheet = SpreadsheetApp.getActiveSheet();
   const columnIndex = getColumnIndexByHeader(columnName);
 
-  if (columnIndex > 0) { 
+  if (columnIndex > 0) {
     const lastRow = getLastRow();
     const columnRange = sheet.getRange(2, columnIndex, lastRow - 1, 1);
     columnRange.setValue(value);
@@ -228,7 +228,6 @@ function setupSpreadsheet() {
     logEvent(`Using sheet: ${sheet.getName()}`, 'INFO');
 
     clearSheetCompletely(sheet);
-    logEvent('Sheet cleared completely', 'INFO');
 
     // Set headers
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);

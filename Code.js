@@ -80,7 +80,7 @@ function onHomepage(e) {
 
   var mainSection = CardService.newCardSection()
     .setHeader("WhatsApp Catalog Tools");
-  
+
   mainSection.addWidget(CardService.newTextButton()
     .setText("Setup Spreadsheet")
     .setOnClickAction(CardService.newAction().setFunctionName("setupSpreadsheet")));
@@ -191,12 +191,12 @@ function getColumnIndexByHeader(headerName, sheet) {
   sheet = sheet || SpreadsheetApp.getActiveSheet();
   const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const columnIndex = headerRow.indexOf(headerName) + 1;
-  
+
   if (columnIndex === 0) {
     Logger.log(`Header "${headerName}" not found in the sheet.`);
     return null;
   }
-  
+
   return columnIndex;
 }
 
@@ -293,7 +293,7 @@ function hideIrrelevantColumns() {
 
   Logger.log("Hiding irrelevant columns: " + diffHeaders.join(","));
   const columnIndexArray = diffHeaders.map(headerName => getColumnIndexByHeader(headerName, sheet)).filter(index => index !== null);
-  
+
   columnIndexArray.sort((a, b) => b - a);
 
   columnIndexArray.forEach(function(columnIndex) {
@@ -360,7 +360,7 @@ function processForm(formObject) {
 function onEdit(e) {
   const sheet = e.source.getActiveSheet();
   const range = e.range;
-  
+
   if (!range.getRow()) {
     return;
   }
@@ -374,11 +374,11 @@ function onEdit(e) {
   const imageUrlColumnIndex = getColumnIndexByHeader('image_url', sheet);
   if (range.getColumn() === imageUrlColumnIndex) {
     Logger.log("Image URL column edited");
-    
+
     const imageUrl = range.getValue();
     if (imageUrl) {
       Logger.log("Image URL not empty");
-      
+
       generateAndSetUniqueId(sheet, range.getRow());
 
       const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
@@ -394,13 +394,13 @@ function onEdit(e) {
       }
     }
   }
-  
+
   const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
   if (range.getColumn() === thumbnailColumnIndex) {
     range.setValue(e.oldValue);
     SpreadsheetApp.getUi().alert("The thumbnail column is automatically generated and cannot be edited directly.");
   }
-  
+
   if (range.getRow() === sheet.getLastRow() && sheet.getLastRow() > sheet.getMaxRows() - 1) {
     extendDataValidation();
   }
@@ -415,7 +415,7 @@ function onEdit(e) {
  */
 function validateProductData(product) {
   const errors = [];
-  
+
   if (!product.id || product.id.length > 100) {
     errors.push("Invalid product ID");
   }
@@ -525,9 +525,9 @@ function extendDataValidation() {
   try {
     const sheet = SpreadsheetApp.getActiveSheet();
     const lastRow = sheet.getLastRow();
-    
+
     applyDataValidationToAllColumns();
-    
+
     logEvent(`Data validation extended to row ${lastRow}`, 'INFO');
   } catch (error) {
     logEvent(`Error extending data validation: ${error.message}`, 'ERROR');
@@ -588,44 +588,44 @@ function validateAllProducts() {
  * @param {number} rowNum The row number to validate.
  * @return {Array} An array of error messages, empty if no errors.
  */
-function validateRow(rowNum) {
-  try {
-    const sheet = SpreadsheetApp.getActiveSheet();
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
-    
-    const product = {};
-    headers.forEach((header, index) => {
-      product[header] = rowData[index];
-    });
+// function validateRow(rowNum) {
+//   try {
+//     const sheet = SpreadsheetApp.getActiveSheet();
+//     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+//     const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-    let errors;
-    switch (product.product_type) {
-      case 'standard':
-        errors = validateStandardProduct(product);
-        break;
-      case 'service':
-        errors = validateServiceListing(product);
-        break;
-      case 'variable':
-        errors = validateVariableProduct(product);
-        break;
-      default:
-        errors = [`Invalid product type: ${product.product_type}`];
-    }
+//     const product = {};
+//     headers.forEach((header, index) => {
+//       product[header] = rowData[index];
+//     });
 
-    if (errors.length > 0) {
-      logEvent(`Validation errors in row ${rowNum}: ${errors.join(', ')}`, 'WARNING');
-    } else {
-      logEvent(`Row ${rowNum} validated successfully`, 'INFO');
-    }
+//     let errors;
+//     switch (product.product_type) {
+//       case 'standard':
+//         errors = validateStandardProduct(product);
+//         break;
+//       case 'service':
+//         errors = validateServiceListing(product);
+//         break;
+//       case 'variable':
+//         errors = validateVariableProduct(product);
+//         break;
+//       default:
+//         errors = [`Invalid product type: ${product.product_type}`];
+//     }
 
-    return errors;
-  } catch (error) {
-    logEvent(`Error validating row ${rowNum}: ${error.message}`, 'ERROR');
-    throw error;
-  }
-}
+//     if (errors.length > 0) {
+//       logEvent(`Validation errors in row ${rowNum}: ${errors.join(', ')}`, 'WARNING');
+//     } else {
+//       logEvent(`Row ${rowNum} validated successfully`, 'INFO');
+//     }
+
+//     return errors;
+//   } catch (error) {
+//     logEvent(`Error validating row ${rowNum}: ${error.message}`, 'ERROR');
+//     throw error;
+//   }
+// }
 /**
  * Logs an event with a timestamp and severity level.
  * @param {string} message The message to log.
