@@ -13,21 +13,21 @@ function getOAuthToken() {
 function getOrCreateWhatsAppFolder() {
   const userProperties = PropertiesService.getUserProperties();
   const folderName = userProperties.getProperty('WHATSAPP_FOLDER_NAME') || "WhatsApp Catalog Listing";
-  
+
   try {
     const folders = DriveApp.getFoldersByName(folderName);
-    
+
     if (folders.hasNext()) {
       logEvent(`Existing folder "${folderName}" found.`, 'INFO');
       return folders.next();
     } else {
       logEvent(`Creating new folder "${folderName}".`, 'INFO');
       const newFolder = DriveApp.createFolder(folderName);
-      
+
       newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      
+
       makeWhatsAppFolderFilesPublic(newFolder);
-      
+
       return newFolder;
     }
   } catch (error) {
@@ -45,7 +45,7 @@ function setWhatsAppFolderName(folderName) {
     logEvent('Invalid folder name provided.', 'ERROR');
     throw new Error('Invalid folder name provided.');
   }
-  
+
   PropertiesService.getUserProperties().setProperty('WHATSAPP_FOLDER_NAME', folderName.trim());
   logEvent(`WhatsApp folder name set to "${folderName}".`, 'INFO');
 }
@@ -73,13 +73,13 @@ function getWhatsAppFolderId() {
 function makeWhatsAppFolderFilesPublic(folder) {
   const files = folder.getFiles();
   let fileCount = 0;
-  
+
   while (files.hasNext()) {
     const file = files.next();
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     fileCount++;
   }
-  
+
   logEvent(`Made ${fileCount} file(s) in the WhatsApp folder public.`, 'INFO');
 }
 
@@ -91,11 +91,11 @@ function makeWhatsAppFolderFilesPublic(folder) {
  */
 function DRIVETHUMBNAIL(url, size) {
   if (!url) return "";
-  
+
   const fileId = url.match(/[-\w]{25,}/);
-  
+
   if (!fileId) return url;
-  
+
   return `https://drive.google.com/thumbnail?id=${fileId[0]}&sz=w${size}`;
 }
 
@@ -173,7 +173,7 @@ function setImageUrlsInSheet(imageUrls) {
 function checkThumbnailFormulas() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
-  
+
   if (!thumbnailColumnIndex) {
     logEvent("Could not find 'thumbnail' column", 'ERROR');
     return;
@@ -197,7 +197,7 @@ function checkThumbnailFormulas() {
 function testImageUrls() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const imageUrlColumnIndex = getColumnIndexByHeader('image_url', sheet);
-  
+
   if (!imageUrlColumnIndex) {
     logEvent("Could not find 'image_url' column", 'ERROR');
     return;
@@ -228,7 +228,7 @@ function testImageUrls() {
 function checkThumbnailContent() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
-  
+
   if (!thumbnailColumnIndex) {
     logEvent("Could not find 'thumbnail' column", 'ERROR');
     return;
@@ -268,7 +268,7 @@ function getListingImageUrlsAndSetInSheet() {
       checkThumbnailContent();
       generateAndSetUniqueIds(sheet);
       setDefaultValuesForProductType();
-      
+
       SpreadsheetApp.flush();
       sheet.autoResizeColumn(1);
       logEvent("Thumbnail column initialized and sheet recalculated", 'INFO');

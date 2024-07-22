@@ -4,21 +4,21 @@
  */
 function createImagePickerCard() {
   const card = CardService.newCardBuilder();
-  
+
   card.setHeader(CardService.newCardHeader().setTitle("Select an Image"));
-  
+
   const section = CardService.newCardSection()
     .setHeader("Choose an image from your WhatsApp Catalog Listing folder:");
-  
+
   const action = CardService.newAction().setFunctionName("selectImage");
   const button = CardService.newTextButton()
     .setText("Select Image")
     .setOnClickAction(action);
-  
+
   section.addWidget(button);
-  
+
   card.addSection(section);
-  
+
   return card.build();
 }
 
@@ -28,23 +28,23 @@ function createImagePickerCard() {
  */
 function selectImage() {
   const folderId = getWhatsAppFolderId();
-  
+
   if (!folderId) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
         .setText("WhatsApp folder not found. Please set up the folder first."))
       .build();
   }
-  
+
   const picker = createPicker(folderId);
-  
+
   if (!picker) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
         .setText("Unable to create image picker. Please try again."))
       .build();
   }
-  
+
   return CardService.newActionResponseBuilder()
     .setOpenDynamicLinkAction(picker)
     .build();
@@ -65,11 +65,11 @@ function createPicker(folderId) {
     .setCallback(pickerCallback)
     .setSelectableMimeTypes("image/png,image/jpeg,image/gif")
     .setTitle("Select an Image");
-  
+
   if (folderId) {
     pickerBuilder.setParent(folderId);
   }
-  
+
   return pickerBuilder.build();
 }
 
@@ -83,9 +83,9 @@ function pickerCallback(params) {
     const doc = params.docs[0];
     const url = doc.url;
     const name = doc.name;
-    
+
     updateImageUrl(url);
-    
+
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
         .setText(`Image "${name}" selected successfully.`))
@@ -110,7 +110,7 @@ function updateImageUrl(url) {
   if (cell.getColumn() === imageUrlColumnIndex) {
     cell.setValue(url);
     logEvent(`Updated image URL in row ${cell.getRow()} to: ${url}`, 'INFO');
-    
+
     // Update the thumbnail
     const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail');
     if (thumbnailColumnIndex) {

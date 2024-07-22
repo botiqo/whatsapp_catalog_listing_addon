@@ -222,41 +222,50 @@ function setValuesToColumn(columnName, value) {
  */
 function setupSpreadsheet() {
   try {
-    const sheet = SpreadsheetApp.getActiveSheet();
-    clearSheetCompletely();
+    logEvent('Starting setupSpreadsheet function', 'INFO');
+
+    const sheet = getOrCreateMainSheet();
+    logEvent(`Using sheet: ${sheet.getName()}`, 'INFO');
+
+    clearSheetCompletely(sheet);
+    logEvent('Sheet cleared completely', 'INFO');
 
     // Set headers
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    logEvent('Headers set successfully', 'INFO');
 
-    applyDataValidationToAllColumns();
+    applyDataValidationToAllColumns(sheet);
+    logEvent('Data validation applied to all columns', 'INFO');
 
     // Apply conditional formatting for required fields
     const requiredHeaders = ["id", "name", "price", "currency", "image_url"];
+    let rules = sheet.getConditionalFormatRules();
     requiredHeaders.forEach(header => {
-      const columnIndex = getColumnIndexByHeader(header);
+      const columnIndex = getColumnIndexByHeader(header, sheet);
       if (columnIndex) {
-        const range = sheet.getRange(2, columnIndex, Math.max(1, getLastRow() - 1), 1);
+        const range = sheet.getRange(2, columnIndex, Math.max(1, sheet.getLastRow() - 1), 1);
         const rule = SpreadsheetApp.newConditionalFormatRule()
-          .whenFormulaSatisfied('=ISBLANK(INDIRECT("R[0]C[0]", FALSE))')
+          .whenFormulaSatisfied(`=ISBLANK(INDIRECT("R[0]C[0]", FALSE))`)
           .setBackground("#FFB3BA")
           .setRanges([range])
           .build();
-        sheet.addConditionalFormatRule(rule);
+        rules.push(rule);
       }
     });
+    sheet.setConditionalFormatRules(rules);
 
     // Set number format for price columns
     ["price", "sale_price"].forEach(header => {
-      const columnIndex = getColumnIndexByHeader(header);
+      const columnIndex = getColumnIndexByHeader(header, sheet);
       if (columnIndex) {
-        sheet.getRange(2, columnIndex, Math.max(1, getLastRow() - 1), 1).setNumberFormat("#,##0.00");
+        sheet.getRange(2, columnIndex, Math.max(1, sheet.getLastRow() - 1), 1).setNumberFormat("#,##0.00");
       }
     });
 
     setupThumbnailColumn("thumbnail", "image_url", 2, 150, sheet);
 
     sheet.setFrozenRows(1);
-    const thumbnailColumnIndex = getColumnIndexByHeader("thumbnail");
+    const thumbnailColumnIndex = getColumnIndexByHeader("thumbnail", sheet);
     if (thumbnailColumnIndex) {
       sheet.setColumnWidth(thumbnailColumnIndex, 120);
     }
@@ -271,16 +280,18 @@ function setupSpreadsheet() {
 
     // Set warning for thumbnail column
     if (thumbnailColumnIndex) {
-      const thumbnailRange = sheet.getRange(2, thumbnailColumnIndex, Math.max(1, getLastRow() - 1), 1);
+      const thumbnailRange = sheet.getRange(2, thumbnailColumnIndex, Math.max(1, sheet.getLastRow() - 1), 1);
       const thumbnailProtection = thumbnailRange.protect().setDescription("Thumbnail Column");
       thumbnailProtection.setWarningOnly(true);
     }
 
     sheet.autoResizeColumns(1, sheet.getLastColumn());
-    hideIrrelevantColumns();
+    hideIrrelevantColumns(sheet);
 
     logEvent("Spreadsheet setup completed successfully", 'INFO');
   } catch (error) {
     logEvent(`Error in setupSpreadsheet: ${error.message}`, 'ERROR');
+    logEvent(`Error stack: ${error.stack}`, 'ERROR');
+    throw error;
   }
 }

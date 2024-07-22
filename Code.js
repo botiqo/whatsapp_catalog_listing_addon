@@ -99,6 +99,24 @@ function onHomepage(e) {
 }
 
 /**
+ * Gets or creates the main data sheet.
+ * @return {GoogleAppsScript.Spreadsheet.Sheet} The main data sheet.
+ */
+function getOrCreateMainSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("WhatsApp Catalog");
+
+  if (!sheet) {
+    sheet = ss.insertSheet("WhatsApp Catalog");
+    logEvent("Created new 'WhatsApp Catalog' sheet", 'INFO');
+  } else {
+    logEvent("Using existing 'WhatsApp Catalog' sheet", 'INFO');
+  }
+
+  return sheet;
+}
+
+/**
  * Runs when the add-on is installed.
  * @param {Object} e The event parameter for a simple onInstall trigger.
  */
@@ -117,11 +135,22 @@ function onInstall(e) {
  */
 function onOpen(e) {
   try {
+    logEvent('Starting onOpen function', 'INFO');
+
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    logEvent(`Successfully accessed active spreadsheet with ID: ${spreadsheet.getId()}`, 'INFO');
+
     createMenu();
+    logEvent('Menu created successfully', 'INFO');
+
     setupSpreadsheet();
+    logEvent('Spreadsheet setup completed', 'INFO');
+
     logEvent('Add-on opened successfully', 'INFO');
   } catch (error) {
-    logEvent('Error during add-on opening: ' + error.message, 'ERROR');
+    logEvent(`Error during add-on opening: ${error.message}`, 'ERROR');
+    logEvent(`Error stack: ${error.stack}`, 'ERROR');
+    console.error('Error during add-on opening:', error);
   }
 }
 
@@ -332,6 +361,10 @@ function onEdit(e) {
   const sheet = e.source.getActiveSheet();
   const range = e.range;
   
+  if (!range.getRow()) {
+    return;
+  }
+
   if (range.getRow() === 1) {
     range.setValue(e.oldValue);
     SpreadsheetApp.getUi().alert("You cannot edit the header row.");
@@ -592,4 +625,28 @@ function validateRow(rowNum) {
     logEvent(`Error validating row ${rowNum}: ${error.message}`, 'ERROR');
     throw error;
   }
+}
+/**
+ * Logs an event with a timestamp and severity level.
+ * @param {string} message The message to log.
+ * @param {string} severity The severity level of the log (default: 'INFO').
+ */
+function logEvent(message, severity = 'INFO') {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let logSheet = ss.getSheetByName('LOG');
+  if (!logSheet) {
+    logSheet = ss.insertSheet('LOG');
+    logSheet.appendRow(['Timestamp', 'Severity', 'Message']);
+  }
+  logSheet.appendRow([new Date(), severity, message]);
+  console.log(`${severity}: ${message}`);
+}
+
+/**
+ * Handles errors by logging them and displaying an alert to the user.
+ * @param {Error} error The error object.
+ */
+function handleError(error) {
+  logEvent('Error: ' + error.toString(), 'ERROR');
+  SpreadsheetApp.getUi().alert('An error occurred. Please check the Log sheet for details.');
 }

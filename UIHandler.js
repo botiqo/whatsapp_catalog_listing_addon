@@ -10,7 +10,7 @@
 function applyAdvancedFilter(filterConfig) {
   const sheet = SpreadsheetApp.getActiveSheet();
   const [headers, ...data] = sheet.getDataRange().getValues();
-  
+
   const columnIndices = {
     price: headers.indexOf('price'),
     category: headers.indexOf('category_id'),
@@ -153,31 +153,31 @@ function setDefaultValuesForProductType(sheet) {
  * Handles the edit event on the spreadsheet
  * @param {GoogleAppsScript.Events.SheetsOnEdit} e The edit event object
  */
-function onEdit(e) {
-  const sheet = e.source.getActiveSheet();
-  const range = e.range;
-  
-  if (range.getRow() === 1) {
-    range.setValue(e.oldValue);
-    SpreadsheetApp.getUi().alert("You cannot edit the header row.");
-    return;
-  }
+// function onEdit(e) {
+//   const sheet = e.source.getActiveSheet();
+//   const range = e.range;
 
-  const columnIndex = range.getColumn();
-  const headerName = HEADERS[columnIndex - 1];
+//   if (range.getRow() === 1) {
+//     range.setValue(e.oldValue);
+//     SpreadsheetApp.getUi().alert("You cannot edit the header row.");
+//     return;
+//   }
 
-  if (headerName === 'image_url') {
-    handleImageUrlEdit(sheet, range);
-  } else if (headerName === 'thumbnail') {
-    handleThumbnailEdit(range);
-  }
-  
-  if (range.getRow() === sheet.getLastRow() && sheet.getLastRow() > sheet.getMaxRows() - 1) {
-    applyDataValidationToAllColumns(sheet);
-  }
+//   const columnIndex = range.getColumn();
+//   const headerName = HEADERS[columnIndex - 1];
 
-  validateRow(range.getRow());
-}
+//   if (headerName === 'image_url') {
+//     handleImageUrlEdit(sheet, range);
+//   } else if (headerName === 'thumbnail') {
+//     handleThumbnailEdit(range);
+//   }
+
+//   if (range.getRow() === sheet.getLastRow() && sheet.getLastRow() > sheet.getMaxRows() - 1) {
+//     applyDataValidationToAllColumns(sheet);
+//   }
+
+//   validateRow(range.getRow());
+// }
 
 /**
  * Handles edits to the image_url column
@@ -244,7 +244,7 @@ function generateAndSetUniqueId(sheet, row) {
   }
 
   const idCell = sheet.getRange(row, idColumnIndex);
-  
+
   if (idCell.getValue()) {
     return idCell.getValue();
   }

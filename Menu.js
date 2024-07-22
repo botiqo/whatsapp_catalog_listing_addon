@@ -5,7 +5,7 @@ function createMenu() {
   try {
     const ui = SpreadsheetApp.getUi();
     const menu = ui.createAddonMenu();
-    
+
     menu.addItem("Setup Spreadsheet", "showSetupSpreadsheetCard")
         .addItem("Configuration", "showConfigurationCard")
         .addItem("Validate All Data", "showValidateAllDataCard")
@@ -15,7 +15,7 @@ function createMenu() {
         .addItem("Export Relevant Columns", "showExportColumnsCard")
         .addItem("Instructions", "showInstructionsCard")
         .addToUi();
-    
+
     logEvent('Menu created', 'INFO');
   } catch (error) {
     logEvent('Error creating menu: ' + error.message, 'ERROR');
@@ -30,7 +30,7 @@ function createMenu() {
 function showSetFolderNameCard() {
   const card = CardService.newCardBuilder();
   card.setHeader(CardService.newCardHeader().setTitle("Set WhatsApp Images Folder"));
-  
+
   const section = CardService.newCardSection()
     .addWidget(CardService.newTextInput()
       .setFieldName("folderName")
@@ -40,7 +40,7 @@ function showSetFolderNameCard() {
       .setText("Set Folder Name")
       .setOnClickAction(CardService.newAction().setFunctionName("setFolderNameFromCard"))
     );
-  
+
   card.addSection(section);
   return card.build();
 }
@@ -52,7 +52,7 @@ function showSetFolderNameCard() {
  */
 function setFolderNameFromCard(e) {
   const folderName = e.commonEventObject.formInputs.folderName;
-  
+
   try {
     setWhatsAppFolderName(folderName);
     return CardService.newActionResponseBuilder()
@@ -138,7 +138,7 @@ function showConfigurationCard() {
  */
 function saveConfiguration(e) {
   const formInputs = e.commonEventObject.formInputs;
-  
+
   const formObject = {
     product_type: formInputs.product_type.stringInputs.value[0],
     category: formInputs.category.stringInputs.value[0],
@@ -190,14 +190,14 @@ function showImagePickerCard() {
 function showValidateAllDataCard() {
   const card = CardService.newCardBuilder();
   card.setHeader(CardService.newCardHeader().setTitle("Validate All Data"));
-  
+
   const section = CardService.newCardSection()
     .addWidget(CardService.newTextParagraph().setText("This will check all product data in your spreadsheet for errors or missing information."))
     .addWidget(CardService.newTextButton()
       .setText("Start Validation")
       .setOnClickAction(CardService.newAction().setFunctionName("validateAllDataFromCard"))
     );
-  
+
   card.addSection(section);
   return card.build();
 }
@@ -218,14 +218,14 @@ function validateAllDataFromCard() {
       // Create a card to display errors
       const errorCard = CardService.newCardBuilder();
       errorCard.setHeader(CardService.newCardHeader().setTitle("Validation Errors"));
-      
+
       const errorSection = CardService.newCardSection();
       errors.forEach(error => {
         errorSection.addWidget(CardService.newTextParagraph().setText(error));
       });
-      
+
       errorCard.addSection(errorSection);
-      
+
       return CardService.newActionResponseBuilder()
         .setNavigation(CardService.newNavigation().pushCard(errorCard.build()))
         .build();
@@ -245,14 +245,14 @@ function validateAllDataFromCard() {
 function showImportImagesCard() {
   const card = CardService.newCardBuilder();
   card.setHeader(CardService.newCardHeader().setTitle("Import Images from Drive"));
-  
+
   const section = CardService.newCardSection()
     .addWidget(CardService.newTextParagraph().setText("This will import image URLs from your WhatsApp Catalog Listing folder in Google Drive."))
     .addWidget(CardService.newTextButton()
       .setText("Start Import")
       .setOnClickAction(CardService.newAction().setFunctionName("importImagesFromCard"))
     );
-  
+
   card.addSection(section);
   return card.build();
 }
@@ -283,14 +283,14 @@ function importImagesFromCard() {
 function showExportColumnsCard() {
   const card = CardService.newCardBuilder();
   card.setHeader(CardService.newCardHeader().setTitle("Export Relevant Columns"));
-  
+
   const section = CardService.newCardSection()
     .addWidget(CardService.newTextParagraph().setText("This will create a new sheet with only the columns required for your WhatsApp Catalog."))
     .addWidget(CardService.newTextButton()
       .setText("Start Export")
       .setOnClickAction(CardService.newAction().setFunctionName("exportColumnsFromCard"))
     );
-  
+
   card.addSection(section);
   return card.build();
 }
@@ -321,14 +321,14 @@ function exportColumnsFromCard() {
 function showSetupSpreadsheetCard() {
   const card = CardService.newCardBuilder();
   card.setHeader(CardService.newCardHeader().setTitle("Setup Spreadsheet"));
-  
+
   const section = CardService.newCardSection()
     .addWidget(CardService.newTextParagraph().setText("This will set up your spreadsheet with the correct headers and formatting. Any existing data will be preserved."))
     .addWidget(CardService.newTextButton()
       .setText("Confirm Setup")
       .setOnClickAction(CardService.newAction().setFunctionName("setupSpreadsheetFromCard"))
     );
-  
+
   card.addSection(section);
   return card.build();
 }

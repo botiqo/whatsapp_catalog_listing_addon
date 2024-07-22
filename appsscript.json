@@ -20,8 +20,8 @@
     "https://www.googleapis.com/auth/spreadsheets.currentonly",
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/script.container.ui",
-    "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/script.card-ui",
+    "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/drive"
   ],
   "addOns": {
@@ -31,15 +31,7 @@
       "useLocaleFromApp": true,
       "homepageTrigger": {
         "runFunction": "onHomepage"
-      },
-      "description": "Manage your WhatsApp Catalog listings efficiently with this add-on.",
-      "version": "1.0.0",
-      "universalActions": [
-        {
-          "label": "Open Settings",
-          "runFunction": "openSettings"
-        }
-      ]
+      }
     },
     "sheets": {
       "homepageTrigger": {
@@ -49,10 +41,6 @@
         "runFunction": "onOpen"
       }
     }
-  },
-  "cloudPlatform": {
-    "projectNumber": "999543760535",
-    "oauthClientId": "YOUR_OAUTH_CLIENT_ID999543760535-9tlmf6n70b7p7jjr7o11itvgrqkb3blt.apps.googleusercontent.com"
   },
   "urlFetchWhitelist": [
     "https://drive.google.com/",

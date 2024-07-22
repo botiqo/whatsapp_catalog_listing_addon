@@ -5,7 +5,7 @@
  */
 function validateProductData(product) {
   const errors = [];
-  
+
   if (!product.id || product.id.length > 100) {
     errors.push("Invalid product ID");
   }
@@ -115,9 +115,9 @@ function extendDataValidation() {
   try {
     const sheet = SpreadsheetApp.getActiveSheet();
     const lastRow = sheet.getLastRow();
-    
+
     applyDataValidationToAllColumns();
-    
+
     logEvent(`Data validation extended to row ${lastRow}`, 'INFO');
   } catch (error) {
     logEvent(`Error extending data validation: ${error.message}`, 'ERROR');
@@ -183,7 +183,7 @@ function validateRow(rowNum) {
     const sheet = SpreadsheetApp.getActiveSheet();
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
-    
+
     const product = {};
     headers.forEach((header, index) => {
       product[header] = rowData[index];
