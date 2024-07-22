@@ -10,7 +10,7 @@ find . -type f \
     -not -name '*.yaml' \
     -not -name '.env' \
     -not -name '.sh' \
-    \( -name '*.gs' -o -name '*.html' -o -name 'appsscript.json' \) | 
+    \( -name '*.js' -o -name '*.html' -o -name 'appsscript.json' \) | 
 while read file; do 
     echo "# File: $file"
     echo
