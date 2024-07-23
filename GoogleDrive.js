@@ -18,10 +18,10 @@ function getOrCreateWhatsAppFolder() {
     const folders = DriveApp.getFoldersByName(folderName);
 
     if (folders.hasNext()) {
-      logEvent(`Existing folder "${folderName}" found.`, 'INFO');
+      ErrorHandler.log(`Existing folder "${folderName}" found.`, 'INFO');
       return folders.next();
     } else {
-      logEvent(`Creating new folder "${folderName}".`, 'INFO');
+      ErrorHandler.log(`Creating new folder "${folderName}".`, 'INFO');
       const newFolder = DriveApp.createFolder(folderName);
 
       newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -31,7 +31,7 @@ function getOrCreateWhatsAppFolder() {
       return newFolder;
     }
   } catch (error) {
-    logEvent(`Error in getOrCreateWhatsAppFolder: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, "Error Please try again or contact support.");
     throw error;
   }
 }
@@ -42,12 +42,12 @@ function getOrCreateWhatsAppFolder() {
  */
 function setWhatsAppFolderName(folderName) {
   if (typeof folderName !== 'string' || folderName.trim() === '') {
-    logEvent('Invalid folder name provided.', 'ERROR');
+    ErrorHandler.log('Invalid folder name provided.', 'ERROR');
     throw new Error('Invalid folder name provided.');
   }
 
   PropertiesService.getUserProperties().setProperty('WHATSAPP_FOLDER_NAME', folderName.trim());
-  logEvent(`WhatsApp folder name set to "${folderName}".`, 'INFO');
+  ErrorHandler.log(`WhatsApp folder name set to "${folderName}".`, 'INFO');
 }
 
 /**
@@ -58,10 +58,10 @@ function getWhatsAppFolderId() {
   try {
     const folder = getOrCreateWhatsAppFolder();
     const folderId = folder.getId();
-    logEvent(`WhatsApp folder ID: ${folderId}`, 'INFO');
+    ErrorHandler.log(`WhatsApp folder ID: ${folderId}`, 'INFO');
     return folderId;
   } catch (error) {
-    logEvent(`Error in getWhatsAppFolderId: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, "Error Please try again or contact support.");
     throw error;
   }
 }
@@ -80,7 +80,7 @@ function makeWhatsAppFolderFilesPublic(folder) {
     fileCount++;
   }
 
-  logEvent(`Made ${fileCount} file(s) in the WhatsApp folder public.`, 'INFO');
+  ErrorHandler.log(`Made ${fileCount} file(s) in the WhatsApp folder public.`, 'INFO');
 }
 
 /**
@@ -105,34 +105,34 @@ function DRIVETHUMBNAIL(url, size) {
  * @return {string[]} An array of image URLs.
  */
 function getImageUrlsAndSetInSheet(directoryId) {
-  logEvent(`Starting getImageUrlsAndSetInSheet function with directory ID: ${directoryId}`, 'INFO');
+  ErrorHandler.log(`Starting getImageUrlsAndSetInSheet function with directory ID: ${directoryId}`, 'INFO');
 
   const imageUrls = [];
 
   try {
     const folder = DriveApp.getFolderById(directoryId);
-    logEvent(`Successfully accessed folder: ${folder.getName()}`, 'INFO');
+    ErrorHandler.log(`Successfully accessed folder: ${folder.getName()}`, 'INFO');
 
     const imageMimeTypes = [MimeType.JPEG, MimeType.PNG, MimeType.GIF];
 
     for (const mimeType of imageMimeTypes) {
-      logEvent(`Searching for files of type: ${mimeType}`, 'INFO');
+      ErrorHandler.log(`Searching for files of type: ${mimeType}`, 'INFO');
       const files = folder.getFilesByType(mimeType);
 
       while (files.hasNext()) {
         const file = files.next();
         const url = file.getUrl();
         imageUrls.push(url);
-        logEvent(`Found image: ${file.getName()} (${url})`, 'INFO');
+        ErrorHandler.log(`Found image: ${file.getName()} (${url})`, 'INFO');
       }
     }
 
-    logEvent(`Total images found: ${imageUrls.length}`, 'INFO');
+    ErrorHandler.log(`Total images found: ${imageUrls.length}`, 'INFO');
 
     setImageUrlsInSheet(imageUrls);
 
   } catch (error) {
-    logEvent(`Error in getImageUrlsAndSetInSheet: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, "Error Please try again or contact support.");
     throw error;
   }
 
@@ -144,26 +144,26 @@ function getImageUrlsAndSetInSheet(directoryId) {
  * @param {string[]} imageUrls An array of image URLs to set in the sheet.
  */
 function setImageUrlsInSheet(imageUrls) {
-  logEvent("Starting to set image URLs in sheet", 'INFO');
+  ErrorHandler.log("Starting to set image URLs in sheet", 'INFO');
 
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const imageUrlColIndex = headers.indexOf('image_url') + 1;
 
   if (imageUrlColIndex === 0) {
-    logEvent("'image_url' column not found in the sheet", 'ERROR');
+    ErrorHandler.log("'image_url' column not found in the sheet", 'ERROR');
     throw new Error("'image_url' column not found in the sheet");
   }
 
-  logEvent(`'image_url' column found at index: ${imageUrlColIndex}`, 'INFO');
+  ErrorHandler.log(`'image_url' column found at index: ${imageUrlColIndex}`, 'INFO');
 
   if (imageUrls.length > 0) {
     const range = sheet.getRange(2, imageUrlColIndex, imageUrls.length, 1);
     range.setValues(imageUrls.map(url => [url]));
-    logEvent(`Set ${imageUrls.length} image URLs in the sheet`, 'INFO');
+    ErrorHandler.log(`Set ${imageUrls.length} image URLs in the sheet`, 'INFO');
   } else {
-    logEvent("No image URLs to set in the sheet", 'WARNING');
+    ErrorHandler.log("No image URLs to set in the sheet", 'WARNING');
   }
 }
 
@@ -175,7 +175,7 @@ function checkThumbnailFormulas() {
   const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
 
   if (!thumbnailColumnIndex) {
-    logEvent("Could not find 'thumbnail' column", 'ERROR');
+    ErrorHandler.log("Could not find 'thumbnail' column", 'ERROR');
     return;
   }
 
@@ -184,9 +184,9 @@ function checkThumbnailFormulas() {
 
   formulas.forEach((formula, index) => {
     if (formula[0]) {
-      logEvent(`Row ${index + 2} formula: ${formula[0]}`, 'INFO');
+      ErrorHandler.log(`Row ${index + 2} formula: ${formula[0]}`, 'INFO');
     } else {
-      logEvent(`Row ${index + 2}: No formula`, 'WARNING');
+      ErrorHandler.log(`Row ${index + 2}: No formula`, 'WARNING');
     }
   });
 }
@@ -199,7 +199,7 @@ function testImageUrls() {
   const imageUrlColumnIndex = getColumnIndexByHeader('image_url', sheet);
 
   if (!imageUrlColumnIndex) {
-    logEvent("Could not find 'image_url' column", 'ERROR');
+    ErrorHandler.log("Could not find 'image_url' column", 'ERROR');
     return;
   }
 
@@ -212,14 +212,14 @@ function testImageUrls() {
       try {
         const response = UrlFetchApp.fetch(url[0], {muteHttpExceptions: true});
         const responseCode = response.getResponseCode();
-        logEvent(`Row ${index + 2}: URL ${url[0]} - Response code: ${responseCode}`, 'INFO');
+        ErrorHandler.log(`Row ${index + 2}: URL ${url[0]} - Response code: ${responseCode}`, 'INFO');
       } catch (error) {
-        logEvent(`Row ${index + 2}: Error accessing URL ${url[0]} - ${error.message}`, 'ERROR');
+        ErrorHandler.handleError(error, `Row ${index + 2}: Error accessing URL ${url[0]} - ${error.message}`);
       }
     }
   });
 
-  logEvent("All image URL tests completed", 'INFO');
+  ErrorHandler.log("All image URL tests completed", 'INFO');
 }
 
 /**
@@ -230,7 +230,7 @@ function checkThumbnailContent() {
   const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
 
   if (!thumbnailColumnIndex) {
-    logEvent("Could not find 'thumbnail' column", 'ERROR');
+    ErrorHandler.log("Could not find 'thumbnail' column", 'ERROR');
     return;
   }
 
@@ -239,7 +239,7 @@ function checkThumbnailContent() {
   const thumbnailValues = thumbnailRange.getValues();
 
   thumbnailValues.forEach((value, index) => {
-    logEvent(`Row ${index + 2} thumbnail content: ${value[0]}`, 'INFO');
+    ErrorHandler.log(`Row ${index + 2} thumbnail content: ${value[0]}`, 'INFO');
   });
 }
 
@@ -248,7 +248,7 @@ function checkThumbnailContent() {
  * @return {string[]} An array of image URLs.
  */
 function getListingImageUrlsAndSetInSheet() {
-  logEvent("Starting getListingImageUrlsAndSetInSheet function", 'INFO');
+  ErrorHandler.log("Starting getListingImageUrlsAndSetInSheet function", 'INFO');
 
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
@@ -257,9 +257,9 @@ function getListingImageUrlsAndSetInSheet() {
     const imageUrls = getImageUrlsAndSetInSheet(directoryId);
 
     if (imageUrls.length > 0) {
-      logEvent("Retrieved and set image URLs:", 'INFO');
+      ErrorHandler.log("Retrieved and set image URLs:", 'INFO');
       imageUrls.forEach((url, index) => {
-        logEvent(`${index + 1}: ${url}`, 'INFO');
+        ErrorHandler.log(`${index + 1}: ${url}`, 'INFO');
       });
 
       thumbnailColumnInit(sheet);
@@ -271,15 +271,15 @@ function getListingImageUrlsAndSetInSheet() {
 
       SpreadsheetApp.flush();
       sheet.autoResizeColumn(1);
-      logEvent("Thumbnail column initialized and sheet recalculated", 'INFO');
+      ErrorHandler.log("Thumbnail column initialized and sheet recalculated", 'INFO');
     } else {
-      logEvent("No image URLs retrieved or set.", 'WARNING');
+      ErrorHandler.log("No image URLs retrieved or set.", 'WARNING');
     }
 
-    logEvent("Finished getListingImageUrlsAndSetInSheet function", 'INFO');
+    ErrorHandler.log("Finished getListingImageUrlsAndSetInSheet function", 'INFO');
     return imageUrls;
   } catch (error) {
-    logEvent(`Error in getListingImageUrlsAndSetInSheet: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, "Error Please try again or contact support.");
     throw error;
   }
 }

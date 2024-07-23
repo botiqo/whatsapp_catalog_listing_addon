@@ -1,28 +1,4 @@
 /**
- * Creates and returns a card for the image picker.
- * @return {Card} The image picker card.
- */
-function createImagePickerCard() {
-  const card = CardService.newCardBuilder();
-
-  card.setHeader(CardService.newCardHeader().setTitle("Select an Image"));
-
-  const section = CardService.newCardSection()
-    .setHeader("Choose an image from your WhatsApp Catalog Listing folder:");
-
-  const action = CardService.newAction().setFunctionName("selectImage");
-  const button = CardService.newTextButton()
-    .setText("Select Image")
-    .setOnClickAction(action);
-
-  section.addWidget(button);
-
-  card.addSection(section);
-
-  return card.build();
-}
-
-/**
  * Handles the image selection process.
  * @return {ActionResponse} The action response after image selection.
  */
@@ -103,26 +79,26 @@ function pickerCallback(params) {
  * @param {string} url The URL of the selected image.
  */
 function updateImageUrl(url) {
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
   const cell = sheet.getActiveCell();
   const imageUrlColumnIndex = getColumnIndexByHeader('image_url');
 
   if (cell.getColumn() === imageUrlColumnIndex) {
     cell.setValue(url);
-    logEvent(`Updated image URL in row ${cell.getRow()} to: ${url}`, 'INFO');
+    ErrorHandler.log(`Updated image URL in row ${cell.getRow()} to: ${url}`, 'INFO');
 
     // Update the thumbnail
     const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail');
     if (thumbnailColumnIndex) {
       const thumbnailCell = sheet.getRange(cell.getRow(), thumbnailColumnIndex);
       thumbnailCell.setFormula(`=IMAGE("${url}",4,100,100)`);
-      logEvent(`Updated thumbnail formula in row ${cell.getRow()}`, 'INFO');
+      ErrorHandler.log(`Updated thumbnail formula in row ${cell.getRow()}`, 'INFO');
     }
 
     // Generate and set unique ID if not already present
     generateAndSetUniqueId(sheet, cell.getRow());
   } else {
-    logEvent("Attempted to update image URL in wrong column", 'WARNING');
+    ErrorHandler.log("Attempted to update image URL in wrong column", 'WARNING');
     throw new Error("Please select a cell in the image_url column before choosing an image.");
   }
 }

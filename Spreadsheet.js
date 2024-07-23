@@ -1,13 +1,4 @@
 /**
- * Gets the last row of data in the active sheet.
- * @return {number} The last row number with data.
- */
-function getLastRow() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  return Math.max(1, sheet.getLastRow());
-}
-
-/**
  * Sets data validation for a specific column.
  * @param {string} columnName The name of the column to set validation for.
  * @param {string[]} columnValueOptions The list of valid options for the column.
@@ -15,16 +6,16 @@ function getLastRow() {
 function setFieldValidation(columnName, columnValueOptions, sheet) {
   sheet = sheet || getOrCreateMainSheet();
   const columnIndex = getColumnIndexByHeader(columnName);
-  logEvent(`Setting validation for column: ${columnName}, index: ${columnIndex}`, 'INFO');
+  ErrorHandler.log(`Setting validation for column: ${columnName}, index: ${columnIndex}`, 'INFO');
 
   if (columnIndex > 0) {
     const lastRow = sheet.getLastRow();
     const columnRange = sheet.getRange(2, columnIndex, Math.max(lastRow - 1, 1), 1);
     const columnRule = SpreadsheetApp.newDataValidation().requireValueInList(columnValueOptions).build();
     columnRange.setDataValidation(columnRule);
-    logEvent(`Data validation set for column ${columnName} from row 2 to ${lastRow}`, 'INFO');
+    ErrorHandler.log(`Data validation set for column ${columnName} from row 2 to ${lastRow}`, 'INFO');
   } else {
-    logEvent(`The header '${columnName}' was not found. Data validation not set.`, 'WARNING');
+    ErrorHandler.log(`The header '${columnName}' was not found. Data validation not set.`, 'WARNING');
   }
 }
 
@@ -32,11 +23,11 @@ function setFieldValidation(columnName, columnValueOptions, sheet) {
  * Clears all data validations from the active sheet.
  */
 function clearAllDataValidations() {
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
   const range = sheet.getDataRange();
   range.setDataValidation(null);
 
-  logEvent(`Cleared all data validations from the entire sheet`, 'INFO');
+  ErrorHandler.log(`Cleared all data validations from the entire sheet`, 'INFO');
 }
 
 /**
@@ -48,15 +39,7 @@ function applyDataValidationToAllColumns() {
   setFieldValidation("category_id", CATEGORY_LIST);
   setFieldValidation("availability", AVAILABILITY_LIST);
   setFieldValidation("condition", CONDITION_LIST);
-  logEvent("Applied data validation to all relevant columns", 'INFO');
-}
-
-/**
- * Generates a unique ID.
- * @return {string} A unique 6-digit ID.
- */
-function generateUniqueId() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  ErrorHandler.log("Applied data validation to all relevant columns", 'INFO');
 }
 
 /**
@@ -68,7 +51,7 @@ function generateUniqueId() {
 function generateAndSetUniqueId(sheet, row) {
   const idColumnIndex = getColumnIndexByHeader('id', sheet);
   if (!idColumnIndex) {
-    logEvent("ID column not found", 'WARNING');
+    ErrorHandler.log("ID column not found", 'WARNING');
     return null;
   }
 
@@ -90,7 +73,7 @@ function generateAndSetUniqueId(sheet, row) {
 
   idCell.setValue(uniqueId);
 
-  logEvent(`Generated and set unique ID ${uniqueId} for row ${row}`, 'INFO');
+  ErrorHandler.log(`Generated and set unique ID ${uniqueId} for row ${row}`, 'INFO');
   return uniqueId;
 }
 
@@ -99,7 +82,7 @@ function generateAndSetUniqueId(sheet, row) {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} [sheet] The sheet to initialize. If not provided, uses the active sheet.
  */
 function thumbnailColumnInit(sheet) {
-  sheet = sheet || SpreadsheetApp.getActiveSheet();
+  sheet = sheet || getOrCreateMainSheet();
   setupThumbnailColumn("thumbnail", "image_url", 2, 100, sheet);
 }
 
@@ -108,12 +91,12 @@ function thumbnailColumnInit(sheet) {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} [sheet] The sheet to update. If not provided, uses the active sheet.
  */
 function generateAndSetUniqueIds(sheet) {
-  sheet = sheet || SpreadsheetApp.getActiveSheet();
+  sheet = sheet || getOrCreateMainSheet();
   const idColumnIndex = getColumnIndexByHeader('id', sheet);
   const imageUrlColumnIndex = getColumnIndexByHeader('image_url', sheet);
 
   if (!idColumnIndex || !imageUrlColumnIndex) {
-    logEvent("Could not find 'id' or 'image_url' columns", 'WARNING');
+    ErrorHandler.log("Could not find 'id' or 'image_url' columns", 'WARNING');
     return;
   }
 
@@ -135,9 +118,9 @@ function generateAndSetUniqueIds(sheet) {
 
   if (changed) {
     idRange.setValues(ids);
-    logEvent(`Generated and set unique IDs for ${ids.filter(id => id[0]).length} rows`, 'INFO');
+    ErrorHandler.log(`Generated and set unique IDs for ${ids.filter(id => id[0]).length} rows`, 'INFO');
   } else {
-    logEvent("No new unique IDs needed to be generated", 'INFO');
+    ErrorHandler.log("No new unique IDs needed to be generated", 'INFO');
   }
 }
 
@@ -154,7 +137,7 @@ function setupThumbnailColumn(thumbnailColumnName, imageUrlColumnName, startRow 
     const thumbnailColumnIndex = getColumnIndexByHeader(thumbnailColumnName, sheet);
     const imageUrlColumnIndex = getColumnIndexByHeader(imageUrlColumnName, sheet);
 
-    logEvent(`Thumbnail column index: ${thumbnailColumnIndex}, Image URL column index: ${imageUrlColumnIndex}`, 'INFO');
+    ErrorHandler.log(`Thumbnail column index: ${thumbnailColumnIndex}, Image URL column index: ${imageUrlColumnIndex}`, 'INFO');
 
     if (!thumbnailColumnIndex || !imageUrlColumnIndex) {
       throw new Error("Could not find specified columns");
@@ -164,13 +147,13 @@ function setupThumbnailColumn(thumbnailColumnName, imageUrlColumnName, startRow 
 
     const thumbnailFormula = `=IFERROR(IMAGE(SUBSTITUTE(SUBSTITUTE(INDIRECT("R[0]C[${columnDifference}]", FALSE), "/view?usp=drivesdk", ""), "https://drive.google.com/file/d/", "https://drive.google.com/uc?export=view&id="),4,${imageSize},${imageSize}), "Unable to load image")`;
 
-    logEvent(`Thumbnail formula: ${thumbnailFormula}`, 'INFO');
+    ErrorHandler.log(`Thumbnail formula: ${thumbnailFormula}`, 'INFO');
 
     const lastRow = sheet.getLastRow();
     const numRows = Math.max(1, lastRow - startRow + 1);
     const thumbnailRange = sheet.getRange(startRow, thumbnailColumnIndex, numRows, 1);
 
-    logEvent(`Setting formula for ${numRows} rows`, 'INFO');
+    ErrorHandler.log(`Setting formula for ${numRows} rows`, 'INFO');
 
     thumbnailRange.setFormula(thumbnailFormula);
 
@@ -179,23 +162,23 @@ function setupThumbnailColumn(thumbnailColumnName, imageUrlColumnName, startRow 
 
     SpreadsheetApp.flush();
 
-    logEvent(`Thumbnail column "${thumbnailColumnName}" set up successfully.`, 'INFO');
+    ErrorHandler.log(`Thumbnail column "${thumbnailColumnName}" set up successfully.`, 'INFO');
   } catch (error) {
-    logEvent(`Error in setupThumbnailColumn: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, `Error in setupThumbnailColumn: ${error.message}`);
   }
 }
 
 /**
  * Clears all content and formatting from the active sheet.
  */
-function clearSheetCompletely() {
-  const sheet = SpreadsheetApp.getActiveSheet();
+function clearSheetCompletely(sheet) {
+  sheet = sheet || getOrCreateMainSheet();
 
   sheet.clear();
   sheet.clearConditionalFormatRules();
   sheet.getDataRange().clearDataValidations();
 
-  logEvent("Sheet cleared completely", 'INFO');
+  ErrorHandler.log("Sheet cleared completely", 'INFO');
 }
 
 /**
@@ -204,16 +187,16 @@ function clearSheetCompletely() {
  * @param {string} value The value to set in the column.
  */
 function setValuesToColumn(columnName, value) {
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
   const columnIndex = getColumnIndexByHeader(columnName);
 
   if (columnIndex > 0) {
     const lastRow = getLastRow();
     const columnRange = sheet.getRange(2, columnIndex, lastRow - 1, 1);
     columnRange.setValue(value);
-    logEvent(`Set value '${value}' to column '${columnName}'`, 'INFO');
+    ErrorHandler.log(`Set value '${value}' to column '${columnName}'`, 'INFO');
   } else {
-    logEvent(`Column '${columnName}' not found`, 'WARNING');
+    ErrorHandler.log(`Column '${columnName}' not found`, 'WARNING');
   }
 }
 
@@ -222,19 +205,19 @@ function setValuesToColumn(columnName, value) {
  */
 function setupSpreadsheet() {
   try {
-    logEvent('Starting setupSpreadsheet function', 'INFO');
+    ErrorHandler.log('Starting setupSpreadsheet function', 'INFO');
 
     const sheet = getOrCreateMainSheet();
-    logEvent(`Using sheet: ${sheet.getName()}`, 'INFO');
+    ErrorHandler.log(`Using sheet: ${sheet.getName()}`, 'INFO');
 
     clearSheetCompletely(sheet);
 
     // Set headers
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
-    logEvent('Headers set successfully', 'INFO');
+    ErrorHandler.log('Headers set successfully', 'INFO');
 
     applyDataValidationToAllColumns(sheet);
-    logEvent('Data validation applied to all columns', 'INFO');
+    ErrorHandler.log('Data validation applied to all columns', 'INFO');
 
     // Apply conditional formatting for required fields
     const requiredHeaders = ["id", "name", "price", "currency", "image_url"];
@@ -287,10 +270,9 @@ function setupSpreadsheet() {
     sheet.autoResizeColumns(1, sheet.getLastColumn());
     hideIrrelevantColumns(sheet);
 
-    logEvent("Spreadsheet setup completed successfully", 'INFO');
+    ErrorHandler.log("Spreadsheet setup completed successfully", 'INFO');
   } catch (error) {
-    logEvent(`Error in setupSpreadsheet: ${error.message}`, 'ERROR');
-    logEvent(`Error stack: ${error.stack}`, 'ERROR');
+    ErrorHandler.handleError(error, `Error in setupSpreadsheet: ${error.message}`);
     throw error;
   }
 }

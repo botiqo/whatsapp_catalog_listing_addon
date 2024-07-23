@@ -1,74 +1,107 @@
-// Constants
-const HEADERS = ["id", "thumbnail", "price", "name", "description", "image_url", "retailer_id", "brand", "variant_group_id", "url", "currency", "category_id", "availability", "condition", "sale_price", "is_hidden"];
-const CUSTOM_COLUMNS = ["thumbnail"];
-const PRODUCT_TYPE_COLUMNS = {
-  'standard': ['id', 'thumbnail', 'description', 'name', 'price', 'currency', 'image_url', 'availability', 'condition', 'brand', 'category_id', 'url', 'retailer_id'],
-  'service': ['id', 'thumbnail', 'description', 'name', 'price', 'currency', 'image_url', 'availability', 'category_id', 'url'],
-  'default': HEADERS
-};
-const CURRENCY_LIST = ["ILS", "AED", "USD", "CAD", "EUR", "GBP", "INR", "MXN", "BRL", "IDR", "ZAR"];
-const CATEGORY_LIST = [
-  "AUTO_VEHICLES_PARTS_ACCESSORIES",
-  "BEAUTY_HEALTH_HAIR",
-  "BUSINESS_SERVICES",
-  "BABY_KIDS_GOODS",
-  "COMMERCIAL_EQUIPMENT",
-  "ELECTRONICS",
-  "FOOD_BEVERAGES",
-  "FURNITURE_APPLIANCES",
-  "HOME_GOODS_DECOR",
-  "LUGGAGE_BAGS",
-  "MEDIA_MUSIC_BOOKS",
-  "MISC",
-  "PERSONAL_ACCESSORIES",
-  "PET_SUPPLIES",
-  "SPORTING_GOODS",
-  "TOYS_GAMES_COLLECTIBLES",
-  "APPAREL_ACCESSORIES",
-  "FOOTWEAR",
-  "HAIR_EXTENSIONS_WIGS",
-  "HAIR_STYLING_TOOLS",
-  "MAKEUP_COSMETICS",
-  "FRAGRANCES",
-  "SKIN_CARE",
-  "BATH_BODY",
-  "NAIL_CARE",
-  "VITAMINS_SUPPLEMENTS",
-  "MEDICAL_SUPPLIES_EQUIPMENT",
-  "TICKETS",
-  "TRAVEL_SERVICES"
-];
-const PRODUCT_TYPE_LIST = ["standard", "service", "default"];
-const AVAILABILITY_LIST = ["in stock", "out of stock"];
-const CONDITION_LIST = ["new", "used"];
-
 /**
- * Retrieves configuration dropdown lists and preselected values.
- * @return {Object} An object containing dropdown lists and preselected values.
+ * Centralized error handling and logging system.
  */
-function getConfigurationDropdownLists() {
-  try {
-    const scriptProperties = PropertiesService.getScriptProperties();
-    const configData = {
-      currencyList: CURRENCY_LIST,
-      categoryList: CATEGORY_LIST,
-      productTypeList: PRODUCT_TYPE_LIST,
-      availabilityList: AVAILABILITY_LIST,
-      conditionList: CONDITION_LIST,
-      preselectedProductType: scriptProperties.getProperty('DEFAULT_PRODUCT_TYPE') || "",
-      preselectedCurrency: scriptProperties.getProperty('DEFAULT_CURRENCY') || "",
-      preselectedCategory: scriptProperties.getProperty('DEFAULT_CATEGORY') || "",
-      preselectedAvailability: scriptProperties.getProperty('DEFAULT_AVAILABILITY') || "",
-      preselectedCondition: scriptProperties.getProperty('DEFAULT_CONDITION') || ""
-    };
+const ErrorHandler = (function() {
+  const LOG_SHEET_NAME = 'Error_Log';
 
-    logEvent('Configuration dropdown lists retrieved', 'INFO');
-    return configData;
-  } catch (error) {
-    logEvent('Error retrieving configuration dropdown lists: ' + error.message, 'ERROR');
-    throw error;
+  /**
+   * Log levels enum
+   */
+  const LogLevel = {
+    DEBUG: 'DEBUG',
+    INFO: 'INFO',
+    WARN: 'WARN',
+    ERROR: 'ERROR'
+  };
+
+  /**
+   * Gets or creates the log sheet.
+   * @return {GoogleAppsScript.Spreadsheet.Sheet} The log sheet.
+   */
+  function getLogSheet() {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(LOG_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(LOG_SHEET_NAME);
+      sheet.appendRow(['Timestamp', 'Level', 'Message', 'Function', 'File', 'Stack']);
+      sheet.setFrozenRows(1);
+    }
+    return sheet;
   }
-}
+
+  /**
+   * Logs a message to the error log sheet and console.
+   * @param {string} message - The message to log.
+   * @param {LogLevel} level - The log level.
+   * @param {Error} [error] - The error object, if applicable.
+   */
+  function log(message, level = LogLevel.INFO, error = null) {
+    const sheet = getLogSheet();
+    const timestamp = new Date().toISOString();
+    const functionName = getFunctionName();
+    const fileName = getFileName();
+    const stack = error ? error.stack : '';
+
+    sheet.appendRow([timestamp, level, message, functionName, fileName, stack]);
+
+    // Log to console as well
+    console.log(`[${level}] ${message}`);
+    if (error) {
+      console.error(error);
+    }
+  }
+
+  /**
+   * Gets the name of the function that called the error handler.
+   * @return {string} The function name.
+   */
+  function getFunctionName() {
+    try {
+      throw new Error();
+    } catch (e) {
+      const stack = e.stack.split('\n');
+      // The function name is typically on the third line of the stack trace
+      const functionCallLine = stack[3];
+      const functionName = functionCallLine.trim().split(' ')[1];
+      return functionName || 'Unknown Function';
+    }
+  }
+
+  /**
+   * Gets the name of the file that called the error handler.
+   * @return {string} The file name.
+   */
+  function getFileName() {
+    try {
+      throw new Error();
+    } catch (e) {
+      const stack = e.stack.split('\n');
+      // The file name is typically on the third line of the stack trace
+      const fileCallLine = stack[3];
+      const fileName = fileCallLine.trim().split('/').pop().split(':')[0];
+      return fileName || 'Unknown File';
+    }
+  }
+
+  /**
+   * Handles an error by logging it and optionally displaying a user-friendly message.
+   * @param {Error} error - The error object.
+   * @param {string} [userMessage] - A user-friendly message to display.
+   */
+  function handleError(error, userMessage = 'An error occurred. Please try again or contact support.') {
+    log(error.message, LogLevel.ERROR, error);
+
+    // Display a user-friendly message
+    SpreadsheetApp.getUi().alert(userMessage);
+  }
+
+  // Public API
+  return {
+    LogLevel: LogLevel,
+    log: log,
+    handleError: handleError
+  };
+})();
 
 /**
  * Displays the add-on homepage.
@@ -76,26 +109,7 @@ function getConfigurationDropdownLists() {
  * @return {Card} The card to display.
  */
 function onHomepage(e) {
-  var card = CardService.newCardBuilder();
-
-  var mainSection = CardService.newCardSection()
-    .setHeader("WhatsApp Catalog Tools");
-
-  mainSection.addWidget(CardService.newTextButton()
-    .setText("Setup Spreadsheet")
-    .setOnClickAction(CardService.newAction().setFunctionName("setupSpreadsheet")));
-
-  mainSection.addWidget(CardService.newTextButton()
-    .setText("Configuration")
-    .setOnClickAction(CardService.newAction().setFunctionName("showConfigurationPrompt")));
-
-  mainSection.addWidget(CardService.newTextButton()
-    .setText("Validate All Data")
-    .setOnClickAction(CardService.newAction().setFunctionName("validateAllData")));
-
-  card.addSection(mainSection);
-
-  return card.build();
+  return createHomepageCard();
 }
 
 /**
@@ -108,9 +122,9 @@ function getOrCreateMainSheet() {
 
   if (!sheet) {
     sheet = ss.insertSheet("WhatsApp Catalog");
-    logEvent("Created new 'WhatsApp Catalog' sheet", 'INFO');
+    ErrorHandler.log("Created new 'WhatsApp Catalog' sheet", 'INFO');
   } else {
-    logEvent("Using existing 'WhatsApp Catalog' sheet", 'INFO');
+    ErrorHandler.log("Using existing 'WhatsApp Catalog' sheet", 'INFO');
   }
 
   return sheet;
@@ -120,56 +134,13 @@ function getOrCreateMainSheet() {
  * Runs when the add-on is installed.
  * @param {Object} e The event parameter for a simple onInstall trigger.
  */
-function onInstall(e) {
-  try {
-    onOpen(e);
-    logEvent('Add-on installed successfully', 'INFO');
-  } catch (error) {
-    logEvent('Error during add-on installation: ' + error.message, 'ERROR');
-  }
-}
+function onInstall(e) {}
 
 /**
  * Runs when the document is opened, creating the add-on's menu.
  * @param {Object} e The event parameter for a simple onOpen trigger.
  */
-function onOpen(e) {
-  try {
-    logEvent('Starting onOpen function', 'INFO');
-
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    logEvent(`Successfully accessed active spreadsheet with ID: ${spreadsheet.getId()}`, 'INFO');
-
-    createMenu();
-    logEvent('Menu created successfully', 'INFO');
-
-    setupSpreadsheet();
-    logEvent('Spreadsheet setup completed', 'INFO');
-
-    logEvent('Add-on opened successfully', 'INFO');
-  } catch (error) {
-    logEvent(`Error during add-on opening: ${error.message}`, 'ERROR');
-    logEvent(`Error stack: ${error.stack}`, 'ERROR');
-    console.error('Error during add-on opening:', error);
-  }
-}
-
-/**
- * Gets the ID of the specific spreadsheet to access.
- * @return {string} The spreadsheet ID.
- */
-function getAccessSpecificSheet() {
-  return PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-}
-
-/**
- * Pauses execution for a specified number of milliseconds.
- * @param {number} milliseconds The number of milliseconds to sleep.
- * @return {Promise} A promise that resolves after the specified time.
- */
-function sleep(milliseconds) {
-  return new Promise(resolve => Utilities.sleep(milliseconds));
-}
+function onOpen(e) {}
 
 /**
  * Gets the difference between all headers and product type headers.
@@ -179,40 +150,6 @@ function sleep(milliseconds) {
  */
 function getHeaderDiff(allHeaders, productTypeHeaders) {
   return allHeaders.filter(header => !productTypeHeaders.includes(header));
-}
-
-/**
- * Gets the column index for a given header name.
- * @param {string} headerName The name of the header to find.
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The sheet to search in.
- * @return {number|null} The column index of the header, or null if not found.
- */
-function getColumnIndexByHeader(headerName, sheet) {
-  sheet = sheet || SpreadsheetApp.getActiveSheet();
-  const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const columnIndex = headerRow.indexOf(headerName) + 1;
-
-  if (columnIndex === 0) {
-    Logger.log(`Header "${headerName}" not found in the sheet.`);
-    return null;
-  }
-
-  return columnIndex;
-}
-
-/**
- * Converts a column index to a letter.
- * @param {number} columnIndex The index of the column.
- * @return {string} The letter representation of the column.
- */
-function getColumnLetter(columnIndex) {
-  let temp, letter = '';
-  while (columnIndex > 0) {
-    temp = (columnIndex - 1) % 26;
-    letter = String.fromCharCode(temp + 65) + letter;
-    columnIndex = (columnIndex - temp - 1) / 26;
-  }
-  return letter;
 }
 
 /**
@@ -252,7 +189,7 @@ function setColumnDefaultValue(sheet, columnIndex, defaultValue) {
  * Sets default values for the selected product type.
  */
 function setDefaultValuesForProductType() {
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
   const defaultValues = getDefaultValues();
   const productType = defaultValues.product_type;
 
@@ -287,7 +224,7 @@ function setDefaultValuesForProductType() {
  * Hides columns that are not relevant to the selected product type.
  */
 function hideIrrelevantColumns() {
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
   const selectedProductType = PropertiesService.getScriptProperties().getProperty('DEFAULT_PRODUCT_TYPE') || 'default';
   const diffHeaders = getHeaderDiff(HEADERS, PRODUCT_TYPE_COLUMNS[selectedProductType]);
 
@@ -339,13 +276,13 @@ function processForm(formObject) {
     setDefaultValuesForProductType();
     applyDataValidationToAllColumns();
 
-    logEvent('Configuration updated successfully', 'INFO');
+    ErrorHandler.log('Configuration updated successfully', 'INFO');
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
         .setText("Configuration updated successfully"))
       .build();
   } catch (error) {
-    logEvent('Error processing form: ' + error.message, 'ERROR');
+    ErrorHandler.handleError(error, "Error processing form, Please try again or contact support.");
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
         .setText("Error updating configuration: " + error.message))
@@ -354,299 +291,87 @@ function processForm(formObject) {
 }
 
 /**
- * Handles edits to the spreadsheet.
- * @param {Object} e The event object.
+ * Handles the edit event on the spreadsheet
+ * @param {GoogleAppsScript.Events.SheetsOnEdit} e The edit event object
  */
 function onEdit(e) {
   const sheet = e.source.getActiveSheet();
   const range = e.range;
 
-  if (!range.getRow()) {
-    return;
-  }
-
   if (range.getRow() === 1) {
-    range.setValue(e.oldValue);
-    SpreadsheetApp.getUi().alert("You cannot edit the header row.");
-    return;
+      range.setValue(e.oldValue);
+      SpreadsheetApp.getUi().alert("You cannot edit the header row.");
+      return;
   }
 
-  const imageUrlColumnIndex = getColumnIndexByHeader('image_url', sheet);
-  if (range.getColumn() === imageUrlColumnIndex) {
-    Logger.log("Image URL column edited");
-
-    const imageUrl = range.getValue();
-    if (imageUrl) {
-      Logger.log("Image URL not empty");
-
-      generateAndSetUniqueId(sheet, range.getRow());
-
-      const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
-      if (thumbnailColumnIndex) {
-        const thumbnailCell = sheet.getRange(range.getRow(), thumbnailColumnIndex);
-        thumbnailCell.setFormula(`=IMAGE("${imageUrl}",4,100,100)`);
-      }
-    } else {
-      const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
-      if (thumbnailColumnIndex) {
-        const thumbnailCell = sheet.getRange(range.getRow(), thumbnailColumnIndex);
-        thumbnailCell.clearContent();
-      }
-    }
+  // Check if the edited sheet is "WhatsApp Catalog"
+  if (sheet.getName() !== "WhatsApp Catalog") {
+    return; // Exit the function if it's not the correct sheet
   }
 
-  const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail', sheet);
-  if (range.getColumn() === thumbnailColumnIndex) {
-    range.setValue(e.oldValue);
-    SpreadsheetApp.getUi().alert("The thumbnail column is automatically generated and cannot be edited directly.");
+  const columnIndex = range.getColumn();
+  const headerName = HEADERS[columnIndex - 1];
+
+  if (headerName === 'image_url') {
+      handleImageUrlEdit(sheet, range);
+  } else if (headerName === 'thumbnail') {
+      handleThumbnailEdit(range);
   }
 
   if (range.getRow() === sheet.getLastRow() && sheet.getLastRow() > sheet.getMaxRows() - 1) {
-    extendDataValidation();
+      applyDataValidationToAllColumns(sheet);
   }
 
   validateRow(range.getRow());
 }
 
 /**
- * Validates product data.
- * @param {Object} product The product object to validate.
- * @return {Array} An array of error messages, empty if no errors.
+ * Handles edits to the image_url column
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The active sheet
+ * @param {GoogleAppsScript.Spreadsheet.Range} range The edited range
  */
-function validateProductData(product) {
-  const errors = [];
-
-  if (!product.id || product.id.length > 100) {
-    errors.push("Invalid product ID");
-  }
-  if (!product.name || product.name.length > 150) {
-    errors.push("Invalid product name");
-  }
-  if (product.description && product.description.length > 7000) {
-    errors.push("Description exceeds 7000 characters");
-  }
-  if (!validatePrice(product.price, product.product_type)) {
-    errors.push("Invalid price");
-  }
-  if (!CURRENCY_LIST.includes(product.currency)) {
-    errors.push("Invalid currency");
-  }
-  if (!product.image_url || !/^https?:\/\/.+/.test(product.image_url)) {
-    errors.push("Invalid image URL");
-  }
-  if (!AVAILABILITY_LIST.includes(product.availability)) {
-    errors.push("Invalid availability");
-  }
-  if ((product.product_type === "standard" || product.product_type === "variable") && !CONDITION_LIST.includes(product.condition)) {
-    errors.push("Invalid condition");
-  }
-  if (product.brand && product.brand.length > 64) {
-    errors.push("Brand name exceeds 64 characters");
-  }
-  if (product.category_id && product.category_id.length > 250) {
-    errors.push("Category exceeds 250 characters");
-  }
-  if (product.url && product.url.length > 2000) {
-    errors.push("URL exceeds 2000 characters");
-  }
-
-  logEvent(`Product validation completed. Errors found: ${errors.length}`, 'INFO');
-  return errors;
-}
-
-/**
- * Validates the price based on the product type.
- * @param {string} price The price to validate.
- * @param {string} productType The type of the product.
- * @return {boolean} True if the price is valid, false otherwise.
- */
-function validatePrice(price, productType) {
-  if (productType === "variable") {
-    const priceRange = price.split("-");
-    if (priceRange.length === 2) {
-      return !isNaN(priceRange[0]) && !isNaN(priceRange[1]) && Number(priceRange[0]) > 0 && Number(priceRange[1]) > 0;
-    }
-  }
-  return !isNaN(price) && Number(price) > 0;
-}
-
-/**
- * Validates a standard product.
- * @param {Object} product The product object to validate.
- * @return {Array} An array of error messages, empty if no errors.
- */
-function validateStandardProduct(product) {
-  const errors = validateProductData(product);
-  if (product.product_type !== "standard") {
-    errors.push("Invalid product type for standard product");
-  }
-  logEvent(`Standard product validation completed. Errors found: ${errors.length}`, 'INFO');
-  return errors;
-}
-
-/**
- * Validates a service listing.
- * @param {Object} product The product object to validate.
- * @return {Array} An array of error messages, empty if no errors.
- */
-function validateServiceListing(product) {
-  const errors = validateProductData(product);
-  if (product.product_type !== "service") {
-    errors.push("Invalid product type for service listing");
-  }
-  if (product.condition) {
-    errors.push("Condition should not be specified for services");
-  }
-  logEvent(`Service listing validation completed. Errors found: ${errors.length}`, 'INFO');
-  return errors;
-}
-
-/**
- * Validates a variable product.
- * @param {Object} product The product object to validate.
- * @return {Array} An array of error messages, empty if no errors.
- */
-function validateVariableProduct(product) {
-  const errors = validateProductData(product);
-  if (product.product_type !== "variable") {
-    errors.push("Invalid product type for variable product");
-  }
-  if (!product.variant_group_id || product.variant_group_id.length > 100) {
-    errors.push("Invalid variant group ID");
-  }
-  logEvent(`Variable product validation completed. Errors found: ${errors.length}`, 'INFO');
-  return errors;
-}
-
-/**
- * Extends data validation to newly added rows.
- */
-function extendDataValidation() {
-  try {
-    const sheet = SpreadsheetApp.getActiveSheet();
-    const lastRow = sheet.getLastRow();
-
-    applyDataValidationToAllColumns();
-
-    logEvent(`Data validation extended to row ${lastRow}`, 'INFO');
-  } catch (error) {
-    logEvent(`Error extending data validation: ${error.message}`, 'ERROR');
-    throw error;
-  }
-}
-
-/**
- * Validates all products in the active sheet.
- * @return {Array} An array of error messages, empty if no errors.
- */
-function validateAllProducts() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  const dataRange = sheet.getDataRange();
-  const values = dataRange.getValues();
-  const headers = values[0];
-  const errors = [];
-
-  for (let i = 1; i < values.length; i++) {
-    const product = {};
-    headers.forEach((header, index) => {
-      product[header] = values[i][index];
-    });
-
-    let productErrors;
-    switch (product.product_type) {
-      case 'standard':
-        productErrors = validateStandardProduct(product);
-        break;
-      case 'service':
-        productErrors = validateServiceListing(product);
-        break;
-      case 'variable':
-        productErrors = validateVariableProduct(product);
-        break;
-      default:
-        productErrors = [`Invalid product type: ${product.product_type}`];
-    }
-
-    if (productErrors.length > 0) {
-      errors.push(`Row ${i + 1}: ${productErrors.join(', ')}`);
-    }
-  }
-
-  if (errors.length > 0) {
-    logEvent(`Validation completed. ${errors.length} errors found.`, 'WARNING');
-    SpreadsheetApp.getUi().alert(`Validation Errors:\n\n${errors.join('\n')}`);
+function handleImageUrlEdit(sheet, range) {
+  const imageUrl = range.getValue();
+  if (imageUrl) {
+    generateAndSetUniqueId(sheet, range.getRow());
+    updateThumbnail(sheet, range.getRow(), imageUrl);
   } else {
-    logEvent('Validation completed. No errors found.', 'INFO');
-    SpreadsheetApp.getUi().alert('All products are valid!');
+    clearThumbnail(sheet, range.getRow());
   }
-
-  return errors;
 }
 
 /**
- * Validates a single row in the active sheet.
- * @param {number} rowNum The row number to validate.
- * @return {Array} An array of error messages, empty if no errors.
+ * Handles edits to the thumbnail column
+ * @param {GoogleAppsScript.Spreadsheet.Range} range The edited range
  */
-// function validateRow(rowNum) {
-//   try {
-//     const sheet = SpreadsheetApp.getActiveSheet();
-//     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-//     const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
-
-//     const product = {};
-//     headers.forEach((header, index) => {
-//       product[header] = rowData[index];
-//     });
-
-//     let errors;
-//     switch (product.product_type) {
-//       case 'standard':
-//         errors = validateStandardProduct(product);
-//         break;
-//       case 'service':
-//         errors = validateServiceListing(product);
-//         break;
-//       case 'variable':
-//         errors = validateVariableProduct(product);
-//         break;
-//       default:
-//         errors = [`Invalid product type: ${product.product_type}`];
-//     }
-
-//     if (errors.length > 0) {
-//       logEvent(`Validation errors in row ${rowNum}: ${errors.join(', ')}`, 'WARNING');
-//     } else {
-//       logEvent(`Row ${rowNum} validated successfully`, 'INFO');
-//     }
-
-//     return errors;
-//   } catch (error) {
-//     logEvent(`Error validating row ${rowNum}: ${error.message}`, 'ERROR');
-//     throw error;
-//   }
-// }
-/**
- * Logs an event with a timestamp and severity level.
- * @param {string} message The message to log.
- * @param {string} severity The severity level of the log (default: 'INFO').
- */
-function logEvent(message, severity = 'INFO') {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let logSheet = ss.getSheetByName('LOG');
-  if (!logSheet) {
-    logSheet = ss.insertSheet('LOG');
-    logSheet.appendRow(['Timestamp', 'Severity', 'Message']);
-  }
-  logSheet.appendRow([new Date(), severity, message]);
-  console.log(`${severity}: ${message}`);
+function handleThumbnailEdit(range) {
+  range.setValue(range.getOldValue());
+  SpreadsheetApp.getUi().alert("The thumbnail column is automatically generated and cannot be edited directly.");
 }
 
 /**
- * Handles errors by logging them and displaying an alert to the user.
- * @param {Error} error The error object.
+ * Updates the thumbnail for a given row
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The active sheet
+ * @param {number} row The row number to update
+ * @param {string} imageUrl The image URL
  */
-function handleError(error) {
-  logEvent('Error: ' + error.toString(), 'ERROR');
-  SpreadsheetApp.getUi().alert('An error occurred. Please check the Log sheet for details.');
+function updateThumbnail(sheet, row, imageUrl) {
+  const thumbnailColumnIndex = HEADERS.indexOf('thumbnail') + 1;
+  if (thumbnailColumnIndex > 0) {
+    const thumbnailCell = sheet.getRange(row, thumbnailColumnIndex);
+    thumbnailCell.setFormula(`=IMAGE("${imageUrl}",4,100,100)`);
+  }
+}
+
+/**
+ * Clears the thumbnail for a given row
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The active sheet
+ * @param {number} row The row number to clear
+ */
+function clearThumbnail(sheet, row) {
+  const thumbnailColumnIndex = HEADERS.indexOf('thumbnail') + 1;
+  if (thumbnailColumnIndex > 0) {
+    const thumbnailCell = sheet.getRange(row, thumbnailColumnIndex);
+    thumbnailCell.clearContent();
+  }
 }

@@ -40,7 +40,7 @@ function validateProductData(product) {
     errors.push("URL exceeds 2000 characters");
   }
 
-  logEvent(`Product validation completed. Errors found: ${errors.length}`, 'INFO');
+  ErrorHandler.log(`Product validation completed. Errors found: ${errors.length}`, 'INFO');
   return errors;
 }
 
@@ -70,7 +70,7 @@ function validateStandardProduct(product) {
   if (product.product_type !== "standard") {
     errors.push("Invalid product type for standard product");
   }
-  logEvent(`Standard product validation completed. Errors found: ${errors.length}`, 'INFO');
+  ErrorHandler.log(`Standard product validation completed. Errors found: ${errors.length}`, 'INFO');
   return errors;
 }
 
@@ -87,7 +87,7 @@ function validateServiceListing(product) {
   if (product.condition) {
     errors.push("Condition should not be specified for services");
   }
-  logEvent(`Service listing validation completed. Errors found: ${errors.length}`, 'INFO');
+  ErrorHandler.log(`Service listing validation completed. Errors found: ${errors.length}`, 'INFO');
   return errors;
 }
 
@@ -104,7 +104,7 @@ function validateVariableProduct(product) {
   if (!product.variant_group_id || product.variant_group_id.length > 100) {
     errors.push("Invalid variant group ID");
   }
-  logEvent(`Variable product validation completed. Errors found: ${errors.length}`, 'INFO');
+  ErrorHandler.log(`Variable product validation completed. Errors found: ${errors.length}`, 'INFO');
   return errors;
 }
 
@@ -113,14 +113,14 @@ function validateVariableProduct(product) {
  */
 function extendDataValidation() {
   try {
-    const sheet = SpreadsheetApp.getActiveSheet();
+    const sheet = getOrCreateMainSheet();
     const lastRow = sheet.getLastRow();
 
     applyDataValidationToAllColumns();
 
-    logEvent(`Data validation extended to row ${lastRow}`, 'INFO');
+    ErrorHandler.log(`Data validation extended to row ${lastRow}`, 'INFO');
   } catch (error) {
-    logEvent(`Error extending data validation: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, "Error Please try again or contact support.");
     throw error;
   }
 }
@@ -130,7 +130,7 @@ function extendDataValidation() {
  * @return {Array} An array of error messages, empty if no errors.
  */
 function validateAllProducts() {
-  const sheet = SpreadsheetApp.getActiveSheet();
+  const sheet = getOrCreateMainSheet();
   const dataRange = sheet.getDataRange();
   const values = dataRange.getValues();
   const headers = values[0];
@@ -163,10 +163,10 @@ function validateAllProducts() {
   }
 
   if (errors.length > 0) {
-    logEvent(`Validation completed. ${errors.length} errors found.`, 'WARNING');
+    ErrorHandler.log(`Validation completed. ${errors.length} errors found.`, 'WARNING');
     SpreadsheetApp.getUi().alert(`Validation Errors:\n\n${errors.join('\n')}`);
   } else {
-    logEvent('Validation completed. No errors found.', 'INFO');
+    ErrorHandler.log('Validation completed. No errors found.', 'INFO');
     SpreadsheetApp.getUi().alert('All products are valid!');
   }
 
@@ -180,7 +180,7 @@ function validateAllProducts() {
  */
 function validateRow(rowNum) {
   try {
-    const sheet = SpreadsheetApp.getActiveSheet();
+    const sheet = getOrCreateMainSheet();
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const rowData = sheet.getRange(rowNum, 1, 1, sheet.getLastColumn()).getValues()[0];
 
@@ -205,14 +205,14 @@ function validateRow(rowNum) {
     }
 
     if (errors.length > 0) {
-      logEvent(`Validation errors in row ${rowNum}: ${errors.join(', ')}`, 'WARNING');
+      ErrorHandler.log(`Validation errors in row ${rowNum}: ${errors.join(', ')}`, 'WARNING');
     } else {
-      logEvent(`Row ${rowNum} validated successfully`, 'INFO');
+      ErrorHandler.log(`Row ${rowNum} validated successfully`, 'INFO');
     }
 
     return errors;
   } catch (error) {
-    logEvent(`Error validating row ${rowNum}: ${error.message}`, 'ERROR');
+    ErrorHandler.handleError(error, "Error Please try again or contact support.");
     throw error;
   }
 }

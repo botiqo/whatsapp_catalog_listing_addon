@@ -20,9 +20,11 @@
     "https://www.googleapis.com/auth/spreadsheets.currentonly",
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/script.container.ui",
-    "https://www.googleapis.com/auth/script.card-ui",
     "https://www.googleapis.com/auth/drive.readonly",
-    "https://www.googleapis.com/auth/drive"
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.locale",
+    "https://www.googleapis.com/auth/drive.file"
   ],
   "addOns": {
     "common": {
@@ -45,5 +47,17 @@
   "urlFetchWhitelist": [
     "https://drive.google.com/",
     "https://www.googleapis.com/"
-  ]
+  ],
+  "dataStudio": {
+    "name": "WhatsApp Catalog Management",
+    "logoUrl": "https://drive.google.com/uc?export=view&id=1OCRH4n83yWzM7Yi9peJ-4xzk-3b_L9Fa",
+    "company": "Your Company Name",
+    "companyUrl": "https://www.yourcompany.com",
+    "addonUrl": "https://github.com/yourusername/whatsapp-catalog-management",
+    "supportUrl": "https://github.com/yourusername/whatsapp-catalog-management/issues",
+    "description": "Manage your WhatsApp catalog efficiently with this add-on.",
+    "sources": [
+      "GOOGLE_SHEETS"
+    ]
+  }
 }
