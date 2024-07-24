@@ -109,7 +109,7 @@ function DRIVETHUMBNAIL(url, size) {
  * @param {string} directoryId The ID of the Google Drive folder.
  * @return {string[]} An array of image URLs.
  */
-function getImageUrlsAndSetInSheet(directoryId) {
+function getImageUrlsAndSetInSheet(directoryId, pageSize = 100, pageToken = null) {
   ErrorHandler.log(`Starting getImageUrlsAndSetInSheet function with directory ID: ${directoryId}`, 'INFO');
 
   const imageUrls = [];
@@ -122,13 +122,27 @@ function getImageUrlsAndSetInSheet(directoryId) {
 
     for (const mimeType of imageMimeTypes) {
       ErrorHandler.log(`Searching for files of type: ${mimeType}`, 'INFO');
-      const files = folder.getFilesByType(mimeType);
+      let files;
+      if (pageToken) {
+        files = folder.getFilesByType(mimeType).continuationToken(pageToken);
+      } else {
+        files = folder.getFilesByType(mimeType);
+      }
 
-      while (files.hasNext()) {
+      let count = 0;
+      while (files.hasNext() && count < pageSize) {
         const file = files.next();
         const url = file.getUrl();
         imageUrls.push(url);
         ErrorHandler.log(`Found image: ${file.getName()} (${url})`, 'INFO');
+        count++;
+      }
+
+      if (files.hasNext()) {
+        return {
+          imageUrls: imageUrls,
+          nextPageToken: files.getContinuationToken()
+        };
       }
     }
 
@@ -136,12 +150,11 @@ function getImageUrlsAndSetInSheet(directoryId) {
 
     setImageUrlsInSheet(imageUrls);
 
+    return { imageUrls: imageUrls, nextPageToken: null };
   } catch (error) {
-    ErrorHandler.handleError(error, "Error Please try again or contact support.");
+    ErrorHandler.handleError(error, "Error accessing Google Drive folder");
     throw error;
   }
-
-  return imageUrls;
 }
 
 /**
