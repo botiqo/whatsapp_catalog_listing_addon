@@ -3,7 +3,12 @@
  * @return {string} The OAuth token.
  */
 function getOAuthToken() {
-  return ScriptApp.getOAuthToken();
+  try {
+    return ScriptApp.getOAuthToken();
+  } catch (error) {
+    ErrorHandler.handleError(error, "Failed to get OAuth token");
+    throw error;
+  }
 }
 
 /**
