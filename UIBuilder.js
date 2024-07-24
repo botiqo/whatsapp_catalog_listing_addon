@@ -208,3 +208,12 @@ function createInstructionsCard() {
     card.addSection(createSection("", widgets));
     return card.build();
 }
+
+function showLoadingCard(message) {
+    const card = CardService.newCardBuilder();
+    const section = CardService.newCardSection()
+      .addWidget(CardService.newTextParagraph().setText(message))
+      .addWidget(CardService.newImage().setImageUrl(LOADER_IMG_URL));
+    card.addSection(section);
+    return card.build();
+  }

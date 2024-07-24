@@ -41,7 +41,7 @@ const CATEGORY_LIST = [
 const PRODUCT_TYPE_LIST = ["standard", "service", "default"];
 const AVAILABILITY_LIST = ["in stock", "out of stock"];
 const CONDITION_LIST = ["new", "used"];
-
+const LOADER_IMG_URL = "https://example.com/loading.gif"; // Replace with an actual loading GIF
 /**
  * Retrieves configuration dropdown lists and preselected values.
  * @return {Object} An object containing dropdown lists and preselected values.
