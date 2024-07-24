@@ -217,3 +217,27 @@ function showLoadingCard(message) {
     card.addSection(section);
     return card.build();
   }
+
+  /**
+ * Processes the selected folder.
+ * @param {Object} e The event object from the card action.
+ * @return {CardService.ActionResponse} The action response after processing the selection.
+ */
+function processFolderSelection(e) {
+    var folderId = e.formInput.selectedFolderId;
+    var folder = DriveApp.getFolderById(folderId);
+    var folderName = folder.getName();
+
+    PropertiesService.getUserProperties().setProperties({
+      'WHATSAPP_FOLDER_ID': folderId,
+      'WHATSAPP_FOLDER_NAME': folderName
+    });
+
+    // Clear the cache when a new folder is selected
+    CacheManager.clear();
+
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification().setText(`Folder "${folderName}" selected as WhatsApp Images Folder.`))
+      .setNavigation(CardService.newNavigation().pushCard(createImportImagesCard()))
+      .build();
+  }

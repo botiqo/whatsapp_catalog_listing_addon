@@ -12,19 +12,31 @@ function getOAuthToken() {
 }
 
 /**
- * Gets or creates the WhatsApp folder in Google Drive.
+ * Gets or creates the WhatsApp folder in Google Drive, using cache when possible.
  * @return {GoogleAppsScript.Drive.Folder} The WhatsApp folder.
  */
 function getOrCreateWhatsAppFolder() {
   const userProperties = PropertiesService.getUserProperties();
   const folderName = userProperties.getProperty('WHATSAPP_FOLDER_NAME') || "WhatsApp Catalog Listing";
 
+  // Try to get folder info from cache
+  const cachedFolderInfo = CacheManager.get('whatsappFolder');
+  if (cachedFolderInfo) {
+    ErrorHandler.log(`Retrieved WhatsApp folder info from cache`, 'INFO');
+    return DriveApp.getFolderById(cachedFolderInfo.id);
+  }
+
   try {
     const folders = DriveApp.getFoldersByName(folderName);
 
     if (folders.hasNext()) {
+      const folder = folders.next();
       ErrorHandler.log(`Existing folder "${folderName}" found.`, 'INFO');
-      return folders.next();
+
+      // Cache the folder info
+      CacheManager.set('whatsappFolder', {id: folder.getId(), name: folder.getName()});
+
+      return folder;
     } else {
       ErrorHandler.log(`Creating new folder "${folderName}".`, 'INFO');
       const newFolder = DriveApp.createFolder(folderName);
@@ -32,6 +44,9 @@ function getOrCreateWhatsAppFolder() {
       newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
       makeWhatsAppFolderFilesPublic(newFolder);
+
+      // Cache the new folder info
+      CacheManager.set('whatsappFolder', {id: newFolder.getId(), name: newFolder.getName()});
 
       return newFolder;
     }
@@ -105,12 +120,22 @@ function DRIVETHUMBNAIL(url, size) {
 }
 
 /**
- * Gets image URLs from a Google Drive folder and sets them in the active sheet.
+ * Gets image URLs from a Google Drive folder and sets them in the active sheet, using cache when possible.
  * @param {string} directoryId The ID of the Google Drive folder.
- * @return {string[]} An array of image URLs.
+ * @param {number} pageSize The number of items to fetch per page.
+ * @param {string} pageToken The continuation token for pagination.
+ * @return {Object} An object containing image URLs and the next page token.
  */
 function getImageUrlsAndSetInSheet(directoryId, pageSize = 100, pageToken = null) {
   ErrorHandler.log(`Starting getImageUrlsAndSetInSheet function with directory ID: ${directoryId}`, 'INFO');
+
+  // Try to get image URLs from cache
+  const cacheKey = `imageUrls_${directoryId}_${pageToken || 'initial'}`;
+  const cachedData = CacheManager.get(cacheKey);
+  if (cachedData) {
+    ErrorHandler.log(`Retrieved image URLs from cache for directory: ${directoryId}`, 'INFO');
+    return cachedData;
+  }
 
   const imageUrls = [];
 
@@ -139,10 +164,13 @@ function getImageUrlsAndSetInSheet(directoryId, pageSize = 100, pageToken = null
       }
 
       if (files.hasNext()) {
-        return {
+        const result = {
           imageUrls: imageUrls,
           nextPageToken: files.getContinuationToken()
         };
+        // Cache the result
+        CacheManager.set(cacheKey, result);
+        return result;
       }
     }
 
@@ -150,7 +178,10 @@ function getImageUrlsAndSetInSheet(directoryId, pageSize = 100, pageToken = null
 
     setImageUrlsInSheet(imageUrls);
 
-    return { imageUrls: imageUrls, nextPageToken: null };
+    const result = { imageUrls: imageUrls, nextPageToken: null };
+    // Cache the result
+    CacheManager.set(cacheKey, result);
+    return result;
   } catch (error) {
     ErrorHandler.handleError(error, "Error accessing Google Drive folder");
     throw error;
