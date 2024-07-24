@@ -30,7 +30,7 @@
   "addOns": {
     "common": {
       "name": "WhatsApp Catalog Management",
-      "logoUrl": "https://raw.githubusercontent.com/botiqo/whatsapp_catalog_listing_addon/master/assets/whatsapp_icon.svg",
+      "logoUrl": "https://raw.githubusercontent.com/botiqo/whatsapp_catalog_listing_addon/master/assets/whatsapp_icon.png",
       "useLocaleFromApp": true,
       "homepageTrigger": {
         "runFunction": "onHomepage"
@@ -51,7 +51,7 @@
   ],
   "dataStudio": {
     "name": "WhatsApp Catalog Management",
-    "logoUrl": "https://raw.githubusercontent.com/botiqo/whatsapp_catalog_listing_addon/master/assets/whatsapp_icon.svg",
+    "logoUrl": "https://raw.githubusercontent.com/botiqo/whatsapp_catalog_listing_addon/master/assets/whatsapp_icon.png",
     "company": "Botiqo",
     "companyUrl": "https://github.com/botiqo/whatsapp_catalog_listing_addon/tree/master",
     "addonUrl": "https://github.com/botiqo/whatsapp_catalog_listing_addon/tree/master",
