@@ -249,3 +249,27 @@ function showProgressCard(message, progress) {
     card.addSection(section);
     return card.build();
 }
+
+function createValidationResultsCard(errors) {
+    const card = CardService.newCardBuilder();
+    const section = CardService.newCardSection();
+
+    if (errors.length === 0) {
+      section.addWidget(CardService.newTextParagraph().setText("All products are valid!"));
+    } else {
+      section.addWidget(CardService.newTextParagraph().setText(`Found ${errors.length} validation errors:`));
+
+      errors.forEach((error, index) => {
+        if (index < 10) { // Limit to first 10 errors to avoid card size limits
+          section.addWidget(CardService.newTextParagraph().setText(error));
+        }
+      });
+
+      if (errors.length > 10) {
+        section.addWidget(CardService.newTextParagraph().setText(`... and ${errors.length - 10} more errors.`));
+      }
+    }
+
+    card.addSection(section);
+    return card.build();
+  }

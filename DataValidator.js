@@ -137,24 +137,54 @@ function validateAllProducts() {
   const errors = [];
 
   for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+
+    // Check if the row is empty
+    if (row.every(cell => cell === '')) {
+      continue; // Skip empty rows
+    }
+
     const product = {};
+    let hasData = false;
+
     headers.forEach((header, index) => {
-      product[header] = values[i][index];
+      product[header] = row[index];
+      if (row[index] !== '') {
+        hasData = true;
+      }
     });
 
-    let productErrors;
-    switch (product.product_type) {
-      case 'standard':
-        productErrors = validateStandardProduct(product);
-        break;
-      case 'service':
-        productErrors = validateServiceListing(product);
-        break;
-      case 'variable':
-        productErrors = validateVariableProduct(product);
-        break;
-      default:
-        productErrors = [`Invalid product type: ${product.product_type}`];
+    // If the row has no data, skip it
+    if (!hasData) {
+      continue;
+    }
+
+    let productErrors = [];
+
+    // Check for required fields
+    if (!product.id) productErrors.push("Missing product ID");
+    if (!product.name) productErrors.push("Missing product name");
+    if (!product.price) productErrors.push("Missing price");
+    if (!product.currency) productErrors.push("Missing currency");
+    if (!product.image_url) productErrors.push("Missing image URL");
+
+    // Validate product type
+    if (!product.product_type) {
+      productErrors.push("Missing product type");
+    } else {
+      switch (product.product_type.toLowerCase()) {
+        case 'standard':
+          productErrors = productErrors.concat(validateStandardProduct(product));
+          break;
+        case 'service':
+          productErrors = productErrors.concat(validateServiceListing(product));
+          break;
+        case 'variable':
+          productErrors = productErrors.concat(validateVariableProduct(product));
+          break;
+        default:
+          productErrors.push(`Invalid product type: ${product.product_type}`);
+      }
     }
 
     if (productErrors.length > 0) {
@@ -162,15 +192,9 @@ function validateAllProducts() {
     }
   }
 
-  if (errors.length > 0) {
-    ErrorHandler.log(`Validation completed. ${errors.length} errors found.`, 'WARNING');
-    SpreadsheetApp.getUi().alert(`Validation Errors:\n\n${errors.join('\n')}`);
-  } else {
-    ErrorHandler.log('Validation completed. No errors found.', 'INFO');
-    SpreadsheetApp.getUi().alert('All products are valid!');
-  }
+  ErrorHandler.log(`Validation completed. ${errors.length} errors found.`, errors.length > 0 ? 'WARNING' : 'INFO');
 
-  return errors;
+  return createValidationResultsCard(errors);
 }
 
 /**
