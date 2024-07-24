@@ -310,43 +310,50 @@ function showFolderPicker() {
   var cardBuilder = CardService.newCardBuilder();
   var section = CardService.newCardSection().setHeader("Select WhatsApp Images Folder");
 
-  // Fetch folders
-  var folders = DriveApp.getFolders();
-  var folderList = [];
+  try {
+    // Fetch folders
+    var folders = DriveApp.getFolders();
+    var folderList = [];
 
-  // Collect folder information
-  while (folders.hasNext()) {
-    var folder = folders.next();
-    folderList.push({
-      id: folder.getId(),
-      name: folder.getName()
+    // Collect folder information
+    while (folders.hasNext()) {
+      var folder = folders.next();
+      folderList.push({
+        id: folder.getId(),
+        name: folder.getName()
+      });
+    }
+
+    // Sort folders alphabetically
+    folderList.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Create a selection input for folders
+    var listItemBuilder = CardService.newSelectionInput()
+      .setType(CardService.SelectionInputType.RADIO_BUTTON)
+      .setTitle("Choose a folder")
+      .setFieldName("selectedFolderId");
+
+    // Add folders to the selection input
+    folderList.forEach(function(folder) {
+      listItemBuilder.addItem(folder.name, folder.id, false);
     });
+
+    section.addWidget(listItemBuilder);
+
+    // Add a button to confirm selection
+    var confirmButton = CardService.newTextButton()
+      .setText("Confirm Selection")
+      .setOnClickAction(CardService.newAction().setFunctionName("processFolderSelection"));
+    section.addWidget(confirmButton);
+
+    cardBuilder.addSection(section);
+    return cardBuilder.build();
+  } catch (error) {
+    ErrorHandler.handleError(error, "Error fetching folders");
+    section.addWidget(CardService.newTextParagraph().setText("An error occurred while fetching folders. Please try again."));
+    cardBuilder.addSection(section);
+    return cardBuilder.build();
   }
-
-  // Sort folders alphabetically
-  folderList.sort((a, b) => a.name.localeCompare(b.name));
-
-  // Create a selection input for folders
-  var listItemBuilder = CardService.newSelectionInput()
-    .setType(CardService.SelectionInputType.RADIO_BUTTON)
-    .setTitle("Choose a folder")
-    .setFieldName("selectedFolderId");
-
-  // Add folders to the selection input
-  folderList.forEach(function(folder) {
-    listItemBuilder.addItem(folder.name, folder.id, false);
-  });
-
-  section.addWidget(listItemBuilder);
-
-  // Add a button to confirm selection
-  var confirmButton = CardService.newTextButton()
-    .setText("Confirm Selection")
-    .setOnClickAction(CardService.newAction().setFunctionName("processFolderSelection"));
-  section.addWidget(confirmButton);
-
-  cardBuilder.addSection(section);
-  return cardBuilder.build();
 }
 
 /**
