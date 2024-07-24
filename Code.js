@@ -4,20 +4,6 @@
 const ErrorHandler = (function() {
   const LOG_SHEET_NAME = 'Error_Log';
 
-  /**
-   * Log levels enum
-   */
-  const LogLevel = {
-    DEBUG: 'DEBUG',
-    INFO: 'INFO',
-    WARN: 'WARN',
-    ERROR: 'ERROR'
-  };
-
-  /**
-   * Gets or creates the log sheet.
-   * @return {GoogleAppsScript.Spreadsheet.Sheet} The log sheet.
-   */
   function getLogSheet() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(LOG_SHEET_NAME);
@@ -29,13 +15,7 @@ const ErrorHandler = (function() {
     return sheet;
   }
 
-  /**
-   * Logs a message to the error log sheet and console.
-   * @param {string} message - The message to log.
-   * @param {LogLevel} level - The log level.
-   * @param {Error} [error] - The error object, if applicable.
-   */
-  function log(message, level = LogLevel.INFO, error = null) {
+  function log(message, level = 'INFO', error = null) {
     const sheet = getLogSheet();
     const timestamp = new Date().toISOString();
     const functionName = getFunctionName();
@@ -44,60 +24,40 @@ const ErrorHandler = (function() {
 
     sheet.appendRow([timestamp, level, message, functionName, fileName, stack]);
 
-    // Log to console as well
     console.log(`[${level}] ${message}`);
     if (error) {
       console.error(error);
     }
   }
 
-  /**
-   * Gets the name of the function that called the error handler.
-   * @return {string} The function name.
-   */
   function getFunctionName() {
     try {
       throw new Error();
     } catch (e) {
       const stack = e.stack.split('\n');
-      // The function name is typically on the third line of the stack trace
       const functionCallLine = stack[3];
       const functionName = functionCallLine.trim().split(' ')[1];
       return functionName || 'Unknown Function';
     }
   }
 
-  /**
-   * Gets the name of the file that called the error handler.
-   * @return {string} The file name.
-   */
   function getFileName() {
     try {
       throw new Error();
     } catch (e) {
       const stack = e.stack.split('\n');
-      // The file name is typically on the third line of the stack trace
       const fileCallLine = stack[3];
       const fileName = fileCallLine.trim().split('/').pop().split(':')[0];
       return fileName || 'Unknown File';
     }
   }
 
-  /**
-   * Handles an error by logging it and optionally displaying a user-friendly message.
-   * @param {Error} error - The error object.
-   * @param {string} [userMessage] - A user-friendly message to display.
-   */
   function handleError(error, userMessage = 'An error occurred. Please try again or contact support.') {
-    log(error.message, LogLevel.ERROR, error);
-
-    // Display a user-friendly message
+    log(error.message, 'ERROR', error);
     SpreadsheetApp.getUi().alert(userMessage);
   }
 
-  // Public API
   return {
-    LogLevel: LogLevel,
     log: log,
     handleError: handleError
   };

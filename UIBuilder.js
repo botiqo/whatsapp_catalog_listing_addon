@@ -118,40 +118,40 @@ function createImportImagesCard() {
     ErrorHandler.log(`createImportImagesCard: Current folder - ${folderName}`, 'INFO');
 
     const folderSection = CardService.newCardSection()
-      .setHeader("WhatsApp Images Folder")
-      .addWidget(CardService.newTextParagraph().setText(`Current folder: ${folderName}`))
-      .addWidget(CardService.newTextButton()
-        .setText("Select Folder")
-        .setOnClickAction(CardService.newAction().setFunctionName("showFolderPicker")));
+        .setHeader("WhatsApp Images Folder")
+        .addWidget(CardService.newTextParagraph().setText(`Current folder: ${folderName}`))
+        .addWidget(CardService.newTextButton()
+            .setText("Select Folder")
+            .setOnClickAction(CardService.newAction().setFunctionName("showFolderPicker")));
 
     card.addSection(folderSection);
 
     if (folderId) {
-      const importSection = CardService.newCardSection()
-        .setHeader("Import Images")
-        .addWidget(CardService.newTextParagraph().setText("Import image URLs from your WhatsApp Catalog Listing folder in Google Drive."))
-        .addWidget(createActionButton("Start Import", "importImagesFromCard"));
+        const importSection = CardService.newCardSection()
+            .setHeader("Import Images")
+            .addWidget(CardService.newTextParagraph().setText("Import image URLs from your WhatsApp Catalog Listing folder in Google Drive."))
+            .addWidget(createActionButton("Start Import", "importImagesFromCard"));
 
-      card.addSection(importSection);
+        card.addSection(importSection);
 
-      const selectImageSection = CardService.newCardSection()
-        .setHeader("Select Individual Image")
-        .addWidget(CardService.newTextParagraph().setText("Choose a single image to add to your catalog."))
-        .addWidget(CardService.newTextButton()
-          .setText("Select Image")
-          .setOnClickAction(CardService.newAction().setFunctionName("showImagePicker")));
+        const selectImageSection = CardService.newCardSection()
+            .setHeader("Select Individual Image")
+            .addWidget(CardService.newTextParagraph().setText("Choose a single image to add to your catalog."))
+            .addWidget(CardService.newTextButton()
+                .setText("Select Image")
+                .setOnClickAction(CardService.newAction().setFunctionName("showImagePicker")));
 
-      card.addSection(selectImageSection);
+        card.addSection(selectImageSection);
     } else {
-      const warningSection = CardService.newCardSection()
-        .addWidget(CardService.newTextParagraph()
-          .setText("Please select a WhatsApp Images Folder to enable importing and image selection."));
+        const warningSection = CardService.newCardSection()
+            .addWidget(CardService.newTextParagraph()
+                .setText("Please select a WhatsApp Images Folder to enable importing and image selection."));
 
-      card.addSection(warningSection);
+        card.addSection(warningSection);
     }
 
     return card.build();
-  }
+}
 
 /**
  * Create a card to export relevant columns.
@@ -212,32 +212,41 @@ function createInstructionsCard() {
 function showLoadingCard(message) {
     const card = CardService.newCardBuilder();
     const section = CardService.newCardSection()
-      .addWidget(CardService.newTextParagraph().setText(message))
-      .addWidget(CardService.newImage().setImageUrl(LOADER_IMG_URL));
+        .addWidget(CardService.newTextParagraph().setText(message))
+        .addWidget(CardService.newImage().setImageUrl(LOADER_IMG_URL));
     card.addSection(section);
     return card.build();
-  }
+}
 
-  /**
- * Processes the selected folder.
- * @param {Object} e The event object from the card action.
- * @return {CardService.ActionResponse} The action response after processing the selection.
- */
+/**
+* Processes the selected folder.
+* @param {Object} e The event object from the card action.
+* @return {CardService.ActionResponse} The action response after processing the selection.
+*/
 function processFolderSelection(e) {
     var folderId = e.formInput.selectedFolderId;
     var folder = DriveApp.getFolderById(folderId);
     var folderName = folder.getName();
 
     PropertiesService.getUserProperties().setProperties({
-      'WHATSAPP_FOLDER_ID': folderId,
-      'WHATSAPP_FOLDER_NAME': folderName
+        'WHATSAPP_FOLDER_ID': folderId,
+        'WHATSAPP_FOLDER_NAME': folderName
     });
 
     // Clear the cache when a new folder is selected
     CacheManager.clear();
 
     return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification().setText(`Folder "${folderName}" selected as WhatsApp Images Folder.`))
-      .setNavigation(CardService.newNavigation().pushCard(createImportImagesCard()))
-      .build();
-  }
+        .setNotification(CardService.newNotification().setText(`Folder "${folderName}" selected as WhatsApp Images Folder.`))
+        .setNavigation(CardService.newNavigation().pushCard(createImportImagesCard()))
+        .build();
+}
+
+function showProgressCard(message, progress) {
+    const card = CardService.newCardBuilder();
+    const section = CardService.newCardSection()
+        .addWidget(CardService.newTextParagraph().setText(message))
+        .addWidget(CardService.newProgressBar().setProgress(progress));
+    card.addSection(section);
+    return card.build();
+}
