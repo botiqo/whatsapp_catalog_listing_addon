@@ -295,34 +295,37 @@ function processForm(formObject) {
  * @param {GoogleAppsScript.Events.SheetsOnEdit} e The edit event object
  */
 function onEdit(e) {
-  const sheet = e.source.getActiveSheet();
-  const range = e.range;
+  try {
+    const sheet = e.source.getActiveSheet();
+    const range = e.range;
 
-  if (range.getRow() === 1) {
+    if (range.getRow() === 1) {
       range.setValue(e.oldValue);
       SpreadsheetApp.getUi().alert("You cannot edit the header row.");
       return;
-  }
+    }
 
-  // Check if the edited sheet is "WhatsApp Catalog"
-  if (sheet.getName() !== "WhatsApp Catalog") {
-    return; // Exit the function if it's not the correct sheet
-  }
+    if (sheet.getName() !== "WhatsApp Catalog") {
+      return;
+    }
 
-  const columnIndex = range.getColumn();
-  const headerName = HEADERS[columnIndex - 1];
+    const columnIndex = range.getColumn();
+    const headerName = HEADERS[columnIndex - 1];
 
-  if (headerName === 'image_url') {
+    if (headerName === 'image_url') {
       handleImageUrlEdit(sheet, range);
-  } else if (headerName === 'thumbnail') {
+    } else if (headerName === 'thumbnail') {
       handleThumbnailEdit(range);
-  }
+    }
 
-  if (range.getRow() === sheet.getLastRow() && sheet.getLastRow() > sheet.getMaxRows() - 1) {
+    if (range.getRow() === sheet.getLastRow() && sheet.getLastRow() > sheet.getMaxRows() - 1) {
       applyDataValidationToAllColumns(sheet);
-  }
+    }
 
-  validateRow(range.getRow());
+    validateRow(range.getRow());
+  } catch (error) {
+    ErrorHandler.handleError(error, "Error in onEdit function");
+  }
 }
 
 /**
