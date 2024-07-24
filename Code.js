@@ -282,7 +282,7 @@ function processForm(formObject) {
         .setText("Configuration updated successfully"))
       .build();
   } catch (error) {
-    ErrorHandler.handleError(error, "Error processing form, Please try again or contact support.");
+    ErrorHandler.handleError(error, "Error processing form");
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
         .setText("Error updating configuration: " + error.message))
