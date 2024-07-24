@@ -36,7 +36,7 @@ function getOrCreateWhatsAppFolder() {
       return newFolder;
     }
   } catch (error) {
-    ErrorHandler.handleError(error, "Error Please try again or contact support.");
+    ErrorHandler.handleError(error, "Error accessing or creating WhatsApp folder");
     throw error;
   }
 }
