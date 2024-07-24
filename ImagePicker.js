@@ -1,25 +1,39 @@
 /**
- * Handles the image selection process.
- * @return {ActionResponse} The action response after image selection.
+ * Shows the image picker card.
+ * @return {CardService.Card} The image picker card.
  */
-function selectImage() {
-  const folderId = getWhatsAppFolderId();
+function showImagePickerCard() {
+  const card = createBaseCard(CARD_TITLES.IMAGE_PICKER);
 
-  if (!folderId) {
-    return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification()
-        .setText("WhatsApp folder not found. Please set up the folder first."))
-      .build();
-  }
+  const widgets = [
+    CardService.newTextParagraph().setText("Select an image from your WhatsApp Images Folder:"),
+    CardService.newTextButton()
+      .setText("Choose Image")
+      .setOnClickAction(CardService.newAction().setFunctionName("showImagePicker"))
+  ];
 
-  const picker = createPicker(folderId);
+  card.addSection(createSection("", widgets));
+  return card.build();
+}
 
-  if (!picker) {
-    return CardService.newActionResponseBuilder()
-      .setNotification(CardService.newNotification()
-        .setText("Unable to create image picker. Please try again."))
-      .build();
-  }
+/**
+ * Creates and returns a Google Picker for image selection.
+ * @return {CardService.ActionResponse} The action response with the picker.
+ */
+function showImagePicker() {
+  const token = ScriptApp.getOAuthToken();
+  const pickerCallback = "processImagePicker";
+  const folderId = PropertiesService.getUserProperties().getProperty('WHATSAPP_FOLDER_ID');
+
+  const picker = DocumentApp.newPickerBuilder()
+    .addView(DocumentApp.PickerView.DOCS_IMAGES)
+    .setOAuthToken(token)
+    .setCallback(pickerCallback)
+    .setOrigin(ScriptApp.getService().getUrl())
+    .setTitle("Select an Image")
+    .setSelectableMimeTypes("image/png,image/jpeg,image/gif")
+    .setParent(folderId)
+    .build();
 
   return CardService.newActionResponseBuilder()
     .setOpenDynamicLinkAction(picker)
@@ -27,44 +41,21 @@ function selectImage() {
 }
 
 /**
- * Creates a Google Picker for image selection.
- * @param {string} folderId The ID of the WhatsApp folder.
- * @return {DynamicLinkAction|null} The picker action or null if unable to create.
- */
-function createPicker(folderId) {
-  const token = ScriptApp.getOAuthToken();
-  const pickerCallback = "pickerCallback";
-  const pickerBuilder = DocumentApp.newPickerBuilder()
-    .addView(DocumentApp.PickerView.FOLDERS)
-    .setOrigin(ScriptApp.getService().getUrl())
-    .setOAuthToken(token)
-    .setCallback(pickerCallback)
-    .setSelectableMimeTypes("image/png,image/jpeg,image/gif")
-    .setTitle("Select an Image");
-
-  if (folderId) {
-    pickerBuilder.setParent(folderId);
-  }
-
-  return pickerBuilder.build();
-}
-
-/**
- * Callback function for the Google Picker.
+ * Processes the selected image from the Google Picker.
  * @param {Object} params The parameters returned by the Picker.
- * @return {ActionResponse} The action response after image selection.
+ * @return {CardService.ActionResponse} The action response after image selection.
  */
-function pickerCallback(params) {
+function processImagePicker(params) {
   if (params.action === "picked") {
-    const doc = params.docs[0];
-    const url = doc.url;
-    const name = doc.name;
+    const image = params.docs[0];
+    const imageUrl = image.url;
+    const imageName = image.name;
 
-    updateImageUrl(url);
+    updateImageUrl(imageUrl);
 
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
-        .setText(`Image "${name}" selected successfully.`))
+        .setText(`Image "${imageName}" selected successfully.`))
       .build();
   } else if (params.action === "cancel") {
     return CardService.newActionResponseBuilder()
@@ -85,28 +76,17 @@ function updateImageUrl(url) {
 
   if (cell.getColumn() === imageUrlColumnIndex) {
     cell.setValue(url);
-    ErrorHandler.log(`Updated image URL in row ${cell.getRow()} to: ${url}`, 'INFO');
 
     // Update the thumbnail
     const thumbnailColumnIndex = getColumnIndexByHeader('thumbnail');
     if (thumbnailColumnIndex) {
       const thumbnailCell = sheet.getRange(cell.getRow(), thumbnailColumnIndex);
       thumbnailCell.setFormula(`=IMAGE("${url}",4,100,100)`);
-      ErrorHandler.log(`Updated thumbnail formula in row ${cell.getRow()}`, 'INFO');
     }
 
     // Generate and set unique ID if not already present
     generateAndSetUniqueId(sheet, cell.getRow());
   } else {
-    ErrorHandler.log("Attempted to update image URL in wrong column", 'WARNING');
     throw new Error("Please select a cell in the image_url column before choosing an image.");
   }
-}
-
-/**
- * Shows the image picker card.
- * @return {CardService.Card} The image picker card.
- */
-function showImagePicker() {
-  return createImagePickerCard();
 }

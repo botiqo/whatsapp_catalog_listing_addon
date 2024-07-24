@@ -283,3 +283,71 @@ function getListingImageUrlsAndSetInSheet() {
     throw error;
   }
 }
+
+/**
+ * Shows the folder picker dialog.
+ * @return {CardService.Card} The card with folder selection options.
+ */
+function showFolderPicker() {
+  var cardBuilder = CardService.newCardBuilder();
+  var section = CardService.newCardSection().setHeader("Select WhatsApp Images Folder");
+
+  // Fetch folders
+  var folders = DriveApp.getFolders();
+  var folderList = [];
+
+  // Collect folder information
+  while (folders.hasNext()) {
+    var folder = folders.next();
+    folderList.push({
+      id: folder.getId(),
+      name: folder.getName()
+    });
+  }
+
+  // Sort folders alphabetically
+  folderList.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Create a selection input for folders
+  var listItemBuilder = CardService.newSelectionInput()
+    .setType(CardService.SelectionInputType.RADIO_BUTTON)
+    .setTitle("Choose a folder")
+    .setFieldName("selectedFolderId");
+
+  // Add folders to the selection input
+  folderList.forEach(function(folder) {
+    listItemBuilder.addItem(folder.name, folder.id, false);
+  });
+
+  section.addWidget(listItemBuilder);
+
+  // Add a button to confirm selection
+  var confirmButton = CardService.newTextButton()
+    .setText("Confirm Selection")
+    .setOnClickAction(CardService.newAction().setFunctionName("processFolderSelection"));
+  section.addWidget(confirmButton);
+
+  cardBuilder.addSection(section);
+  return cardBuilder.build();
+}
+
+/**
+ * Processes the selected folder.
+ * @param {Object} e The event object from the card action.
+ * @return {CardService.ActionResponse} The action response after processing the selection.
+ */
+function processFolderSelection(e) {
+  var folderId = e.formInput.selectedFolderId;
+  var folder = DriveApp.getFolderById(folderId);
+  var folderName = folder.getName();
+
+  PropertiesService.getUserProperties().setProperties({
+    'WHATSAPP_FOLDER_ID': folderId,
+    'WHATSAPP_FOLDER_NAME': folderName
+  });
+
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText(`Folder "${folderName}" selected as WhatsApp Images Folder.`))
+    .setNavigation(CardService.newNavigation().pushCard(createImportImagesCard()))
+    .build();
+}

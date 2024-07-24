@@ -1,7 +1,6 @@
 const CARD_TITLES = {
     HOMEPAGE: "WhatsApp Catalog Tools",
     CONFIGURATION: "WhatsApp Catalog Configuration",
-    SET_FOLDER: "Set WhatsApp Images Folder",
     IMAGE_PICKER: "Select an Image",
     IMPORT_IMAGES: "Import Images from Drive",
     EXPORT_COLUMNS: "Export Relevant Columns",
@@ -74,9 +73,9 @@ function createHomepageCard() {
         createActionButton("Setup Spreadsheet", "setupSpreadsheet"),
         createActionButton("Configuration", "createConfigurationCard"),
         createActionButton("Validate All Data", "validateAllProducts"),
-        createActionButton("Select Image from Drive", "showImagePickerCard"),
+        // createActionButton("Select Image from Drive", "showImagePickerCard"),
         createActionButton("Import images from Drive", "createImportImagesCard"),
-        createActionButton("Set WhatsApp Images Folder", "showSetFolderNameCard"),
+        // createActionButton("Set WhatsApp Images Folder", "showSetFolderNameCard"),
         createActionButton("Export Relevant Columns", "createExportColumnsCard"),
         createActionButton("Instructions", "createInstructionsCard")
     ];
@@ -108,20 +107,51 @@ function createConfigurationCard() {
 }
 
 /**
- * Creates and returns a card for import images from google drive.
- * @return {CardService.Card} The import images card.
+ * Creates and returns a card for managing WhatsApp image folder and importing images.
+ * @return {CardService.Card} The image management card.
  */
 function createImportImagesCard() {
     const card = createBaseCard(CARD_TITLES.IMPORT_IMAGES);
+    const folderName = PropertiesService.getUserProperties().getProperty('WHATSAPP_FOLDER_NAME') || "Not set";
+    const folderId = PropertiesService.getUserProperties().getProperty('WHATSAPP_FOLDER_ID');
 
-    const widgets = [
-        CardService.newTextParagraph().setText("This will import image URLs from your WhatsApp Catalog Listing folder in Google Drive."),
-        createActionButton("Start Import", "importImagesFromCard")
-    ];
+    ErrorHandler.log(`createImportImagesCard: Current folder - ${folderName}`, 'INFO');
 
-    card.addSection(createSection("", widgets));
+    const folderSection = CardService.newCardSection()
+      .setHeader("WhatsApp Images Folder")
+      .addWidget(CardService.newTextParagraph().setText(`Current folder: ${folderName}`))
+      .addWidget(CardService.newTextButton()
+        .setText("Select Folder")
+        .setOnClickAction(CardService.newAction().setFunctionName("showFolderPicker")));
+
+    card.addSection(folderSection);
+
+    if (folderId) {
+      const importSection = CardService.newCardSection()
+        .setHeader("Import Images")
+        .addWidget(CardService.newTextParagraph().setText("Import image URLs from your WhatsApp Catalog Listing folder in Google Drive."))
+        .addWidget(createActionButton("Start Import", "importImagesFromCard"));
+
+      card.addSection(importSection);
+
+      const selectImageSection = CardService.newCardSection()
+        .setHeader("Select Individual Image")
+        .addWidget(CardService.newTextParagraph().setText("Choose a single image to add to your catalog."))
+        .addWidget(CardService.newTextButton()
+          .setText("Select Image")
+          .setOnClickAction(CardService.newAction().setFunctionName("showImagePicker")));
+
+      card.addSection(selectImageSection);
+    } else {
+      const warningSection = CardService.newCardSection()
+        .addWidget(CardService.newTextParagraph()
+          .setText("Please select a WhatsApp Images Folder to enable importing and image selection."));
+
+      card.addSection(warningSection);
+    }
+
     return card.build();
-}
+  }
 
 /**
  * Create a card to export relevant columns.

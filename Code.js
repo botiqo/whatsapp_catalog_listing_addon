@@ -375,3 +375,22 @@ function clearThumbnail(sheet, row) {
     thumbnailCell.clearContent();
   }
 }
+
+/**
+ * Saves the configuration from the card input.
+ * @param {Object} e The event object from card interaction.
+ * @return {CardService.ActionResponse} The action response after saving the configuration.
+ */
+function saveConfiguration(e) {
+  const formInputs = e.commonEventObject.formInputs;
+
+  const formObject = {
+    product_type: formInputs.product_type.stringInputs.value[0],
+    category: formInputs.category.stringInputs.value[0],
+    currency: formInputs.currency.stringInputs.value[0],
+    availability: formInputs.availability.stringInputs.value[0],
+    condition: formInputs.condition.stringInputs.value[0]
+  };
+
+  return processForm(formObject);
+}
