@@ -70,19 +70,18 @@ function createSelectionInput(title, fieldName, items, selectedItem) {
 function createHomepageCard() {
     const card = createBaseCard(CARD_TITLES.HOMEPAGE);
     const buttons = [
-        createActionButton("Setup Spreadsheet", "setupSpreadsheet"),
-        createActionButton("Configuration", "createConfigurationCard"),
-        createActionButton("Validate All Data", "validateAllProducts"),
-        // createActionButton("Select Image from Drive", "showImagePickerCard"),
-        createActionButton("Import images from Drive", "createImportImagesCard"),
-        // createActionButton("Set WhatsApp Images Folder", "showSetFolderNameCard"),
-        createActionButton("Export Relevant Columns", "createExportColumnsCard"),
-        createActionButton("Instructions", "createInstructionsCard")
+      createActionButton("Setup Spreadsheet", "setupSpreadsheet"),
+      createActionButton("Configuration", "createConfigurationCard"),
+      createActionButton("Validate All Data", "validateAllProducts"),
+      createActionButton("Import images from Drive", "createImportImagesCard"),
+      createActionButton("Export Relevant Columns", "createExportColumnsCard"),
+      createActionButton("Instructions", "createInstructionsCard"),
+      createActionButton("Provide Feedback", "showFeedbackCard") // Add this line
     ];
 
     card.addSection(createSection(CARD_TITLES.HOMEPAGE, buttons));
     return card.build();
-}
+  }
 
 /**
  * Creates and returns a card for the configuration settings.
