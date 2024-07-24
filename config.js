@@ -42,6 +42,7 @@ const PRODUCT_TYPE_LIST = ["standard", "service", "default"];
 const AVAILABILITY_LIST = ["in stock", "out of stock"];
 const CONDITION_LIST = ["new", "used"];
 const LOADER_IMG_URL = "https://example.com/loading.gif"; // Replace with an actual loading GIF
+const ADDON_ICON = "https://raw.githubusercontent.com/botiqo/whatsapp_catalog_listing_addon/master/assets/whatsapp_icon.svg";
 /**
  * Retrieves configuration dropdown lists and preselected values.
  * @return {Object} An object containing dropdown lists and preselected values.
